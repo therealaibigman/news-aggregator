@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:generate": "dotenv -e .env -- drizzle-kit generate",
-    "db:migrate": "dotenv -e .env -- drizzle-kit migrate",
-    "job:refresh": "dotenv -e .env -- tsx src/server/scripts/refresh.ts"
+    "db:generate": "node -r dotenv/config ./node_modules/.bin/drizzle-kit generate",
+    "db:migrate": "node -r dotenv/config ./node_modules/.bin/drizzle-kit migrate",
+    "job:refresh": "node -r dotenv/config ./node_modules/.bin/tsx src/server/scripts/refresh.ts",
+    "job:scheduler": "node -r dotenv/config ./node_modules/.bin/tsx src/server/scripts/scheduler.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
