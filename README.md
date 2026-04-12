@@ -7,6 +7,7 @@ Personalised news/content aggregator.
 - Lets you Like/Dislike articles
 - Maintains an **interpretable, reduced-context preference summary** for LLM prompting
 - Scores new articles using a **configurable LLM provider/model** (default: OpenRouter)
+- Auto-add sources with **RSS autodetect**, otherwise **LLM-generated scraping recipes** you can test/approve
 
 ## Tech
 
@@ -57,6 +58,9 @@ npm run dev
 Open:
 - http://localhost:3001
 - Settings: http://localhost:3001/settings
+- Sources: http://localhost:3001/settings/sources
+- Jobs: http://localhost:3001/settings/jobs
+- Articles: http://localhost:3001/articles
 
 ### One-shot refresh (scrape)
 
@@ -64,7 +68,16 @@ Open:
 npm run job:refresh
 ```
 
-### Scheduler (scrape + score loop)
+### Dispatcher + worker (recommended)
+
+```bash
+npm run job:dispatch
+npm run job:worker
+```
+
+Worker concurrency is controlled by `WORKER_CONCURRENCY` (default 2).
+
+### Scheduler (legacy loop)
 
 ```bash
 npm run job:scheduler
@@ -73,13 +86,17 @@ npm run job:scheduler
 ## Key API routes
 
 - `GET /api/sources`, `POST /api/sources`
+- `POST /api/sources/auto` (RSS autodetect, else generate LLM recipe)
 - `POST /api/ingest` (add a source by dropping in an article URL, optional like)
-- `GET /api/articles?limit=100&offset=0`
+- `GET /api/articles/list?unread=1&saved=1&limit=100`
+- `POST /api/articles/read` / `hide` / `save`
 - `POST /api/feedback` (like/dislike, optional notes)
 - `GET /api/prefs`, `POST /api/prefs` (preference summary)
 - `GET /api/settings`, `POST /api/settings` (provider/model selection)
+- Jobs: `GET /api/jobs/list`, `POST /api/jobs/dispatch`, `POST /api/jobs/run`, `POST /api/jobs/enqueue`
+- Recipes: `POST /api/recipes/test`, `POST /api/recipes/approve-safe`
 
 ## Notes
 
 - Secrets are **not** stored in DB. API keys stay in `.env`.
-- Current scrapers are MVP and will break when sites change. RSS support is a good next step.
+- Current scrapers are MVP and will break when sites change. Prefer RSS or approved recipes.
