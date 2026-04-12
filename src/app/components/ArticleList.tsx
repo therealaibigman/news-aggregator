@@ -54,6 +54,9 @@ export function ArticleList() {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ articleId, value }),
     });
+
+    // Regenerate preference summary in the background (reduced-context for LLM use).
+    fetch('/api/prefs', { method: 'POST' }).catch(() => {});
     // refresh counts
     startTransition(() => {
       load().finally(() => setBusyId(null));

@@ -1,4 +1,5 @@
 import { ArticleList } from './components/ArticleList';
+import Link from 'next/link';
 
 type Source = {
   id: string;
@@ -15,7 +16,12 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen p-8">
-      <h1 className="text-2xl font-bold">News Aggregator</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">News Aggregator</h1>
+        <Link className="text-sm underline" href="/settings">
+          Settings
+        </Link>
+      </div>
       <p className="text-sm text-gray-600 mt-2">Sources + Articles (MVP)</p>
 
       <div className="mt-6 space-y-2">
@@ -35,11 +41,6 @@ export default async function Home() {
       </div>
 
       <ArticleList />
-
-      <div className="mt-10">
-        <div className="text-sm font-semibold">Preference summary (LLM-readable)</div>
-        <div className="text-xs text-gray-600">POST /api/prefs to regenerate from feedback.</div>
-      </div>
     </div>
   );
 }

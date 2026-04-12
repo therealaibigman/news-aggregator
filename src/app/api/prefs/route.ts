@@ -18,6 +18,7 @@ export async function GET() {
 }
 
 export async function POST() {
-  const content = await buildGlobalPreferenceSummary();
-  return Response.json({ ok: true, content });
+  await buildGlobalPreferenceSummary();
+  // If triggered from a browser <form>, send user back to Settings.
+  return Response.redirect('http://localhost:3001/settings');
 }
