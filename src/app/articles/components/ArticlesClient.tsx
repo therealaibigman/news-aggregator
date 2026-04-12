@@ -20,31 +20,86 @@ type Row = {
   dislikes: number;
 };
 
+type Filters = {
+  unread: boolean;
+  savedOnly: boolean;
+  minScore: number;
+  sort: 'new' | 'score';
+  source: string;
+};
+
 export function ArticlesClient() {
   const [rows, setRows] = useState<Row[]>([]);
-  const [unread, setUnread] = useState(true);
-  const [savedOnly, setSavedOnly] = useState(false);
-  const [minScore, setMinScore] = useState(0);
+  const [filters, setFilters] = useState<Filters>(() => {
+    try {
+      const raw = localStorage.getItem('articles.filters');
+      if (!raw) throw new Error('no saved');
+      const v = JSON.parse(raw) as unknown;
+      const o = typeof v === 'object' && v !== null ? (v as Record<string, unknown>) : null;
+      if (!o) throw new Error('bad');
+
+      return {
+        unread: typeof o.unread === 'boolean' ? o.unread : true,
+        savedOnly: typeof o.savedOnly === 'boolean' ? o.savedOnly : false,
+        minScore: typeof o.minScore === 'number' ? o.minScore : 0,
+        sort: o.sort === 'score' ? 'score' : 'new',
+        source: typeof o.source === 'string' ? o.source : '',
+      };
+    } catch {
+      return { unread: true, savedOnly: false, minScore: 0, sort: 'new', source: '' };
+    }
+  });
   const [openWhy, setOpenWhy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const qs = new URLSearchParams();
     qs.set('limit', '100');
-    if (unread) qs.set('unread', '1');
-    if (savedOnly) qs.set('saved', '1');
+    if (filters.unread) qs.set('unread', '1');
+    if (filters.savedOnly) qs.set('saved', '1');
     const res = await fetch(`/api/articles/list?${qs.toString()}`, { cache: 'no-store' });
     const data = (await res.json()) as Row[];
     setRows(data);
-  }, [unread, savedOnly]);
+  }, [filters.unread, filters.savedOnly]);
 
   useEffect(() => {
     const t = setTimeout(() => void load(), 0);
     return () => clearTimeout(t);
   }, [load]);
 
+  const sources = useMemo(() => {
+    const s = Array.from(new Set(rows.map((r) => r.baseUrl))).sort();
+    return s;
+  }, [rows]);
+
   const filtered = useMemo(() => {
-    return rows.filter((r) => (r.interestScore ?? 0) >= minScore);
-  }, [rows, minScore]);
+    const f = rows
+      .filter((r) => (r.interestScore ?? 0) >= filters.minScore)
+      .filter((r) => (filters.source ? r.baseUrl === filters.source : true));
+
+    if (filters.sort === 'score') {
+      f.sort((a, b) => (b.interestScore ?? -1) - (a.interestScore ?? -1));
+    }
+    return f;
+  }, [rows, filters.minScore, filters.sort, filters.source]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      'articles.filters',
+      JSON.stringify(filters),
+    );
+  }, [filters]);
+
+  async function bulk(action: 'read' | 'unread' | 'save' | 'unsave' | 'hide') {
+    const ids = filtered.slice(0, 50).map((r) => r.id);
+    for (const id of ids) {
+      if (action === 'read') await markRead(id, true);
+      if (action === 'unread') await markRead(id, false);
+      if (action === 'save') await setSaved(id, true);
+      if (action === 'unsave') await setSaved(id, false);
+      if (action === 'hide') await setHidden(id, true);
+    }
+    await load();
+  }
 
   async function markRead(articleId: string, read: boolean) {
     await fetch('/api/articles/read', {
@@ -52,7 +107,7 @@ export function ArticlesClient() {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ articleId, read }),
     });
-    await load();
+    // avoid N reloads in bulk loops
   }
 
   async function setHidden(articleId: string, hidden: boolean) {
@@ -61,7 +116,7 @@ export function ArticlesClient() {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ articleId, hidden }),
     });
-    await load();
+    // avoid N reloads in bulk loops
   }
 
   async function setSaved(articleId: string, saved: boolean) {
@@ -70,29 +125,84 @@ export function ArticlesClient() {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ articleId, saved }),
     });
-    await load();
+    // avoid N reloads in bulk loops
   }
 
   return (
     <div className="mt-6">
       <div className="flex flex-wrap items-center gap-4 text-sm">
         <label className="flex items-center gap-2">
-          <input type="checkbox" checked={unread} onChange={(e) => setUnread(e.target.checked)} /> Unread only
+          <input
+            type="checkbox"
+            checked={filters.unread}
+            onChange={(e) => setFilters({ ...filters, unread: e.target.checked })}
+          />
+          Unread only
         </label>
         <label className="flex items-center gap-2">
-          <input type="checkbox" checked={savedOnly} onChange={(e) => setSavedOnly(e.target.checked)} /> Saved only
+          <input
+            type="checkbox"
+            checked={filters.savedOnly}
+            onChange={(e) => setFilters({ ...filters, savedOnly: e.target.checked })}
+          />
+          Saved only
         </label>
         <label className="flex items-center gap-2">
           Min score
           <input
             type="number"
             className="w-20 rounded border px-2 py-1"
-            value={minScore}
-            onChange={(e) => setMinScore(Number(e.target.value))}
+            value={filters.minScore}
+            onChange={(e) => setFilters({ ...filters, minScore: Number(e.target.value) })}
           />
+        </label>
+        <label className="flex items-center gap-2">
+          Sort
+          <select
+            className="rounded border px-2 py-1"
+            value={filters.sort}
+            onChange={(e) => setFilters({ ...filters, sort: e.target.value === 'score' ? 'score' : 'new' })}
+          >
+            <option value="new">Newest</option>
+            <option value="score">Score</option>
+          </select>
+        </label>
+        <label className="flex items-center gap-2">
+          Source
+          <select
+            className="max-w-[240px] rounded border px-2 py-1"
+            value={filters.source}
+            onChange={(e) => setFilters({ ...filters, source: e.target.value })}
+          >
+            <option value="">All</option>
+            {sources.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
         </label>
         <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => load()}>
           Refresh
+        </button>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+        <span className="text-gray-600">Bulk (first 50 in view):</span>
+        <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => bulk('read')}>
+          Mark read
+        </button>
+        <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => bulk('unread')}>
+          Mark unread
+        </button>
+        <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => bulk('save')}>
+          Save
+        </button>
+        <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => bulk('unsave')}>
+          Unsave
+        </button>
+        <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => bulk('hide')}>
+          Hide
         </button>
       </div>
 
