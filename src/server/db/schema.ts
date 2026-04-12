@@ -19,6 +19,10 @@ export const sources = pgTable(
     lastRunAt: timestamp('last_run_at', { withTimezone: true }),
     lastStatus: text('last_status'),
     lastError: text('last_error'),
+    failCount: integer('fail_count').notNull().default(0),
+    nextRunAt: timestamp('next_run_at', { withTimezone: true }),
+    scoringEnabled: boolean('scoring_enabled').notNull().default(true),
+    scoringOverride: boolean('scoring_override').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({
@@ -63,6 +67,48 @@ export const feedback = pgTable(
   },
 );
 
+export const articlesRead = pgTable(
+  'articles_read',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    articleId: uuid('article_id')
+      .notNull()
+      .references(() => articles.id, { onDelete: 'cascade' }),
+    readAt: timestamp('read_at', { withTimezone: true }),
+  },
+  (t) => ({
+    articleIdIdx: uniqueIndex('articles_read_article_id_idx').on(t.articleId),
+  }),
+);
+
+export const articlesHidden = pgTable(
+  'articles_hidden',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    articleId: uuid('article_id')
+      .notNull()
+      .references(() => articles.id, { onDelete: 'cascade' }),
+    hidden: boolean('hidden').notNull().default(false),
+  },
+  (t) => ({
+    articleIdIdx: uniqueIndex('articles_hidden_article_id_idx').on(t.articleId),
+  }),
+);
+
+export const articlesSaved = pgTable(
+  'articles_saved',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    articleId: uuid('article_id')
+      .notNull()
+      .references(() => articles.id, { onDelete: 'cascade' }),
+    saved: boolean('saved').notNull().default(false),
+  },
+  (t) => ({
+    articleIdIdx: uniqueIndex('articles_saved_article_id_idx').on(t.articleId),
+  }),
+);
+
 export const preferenceSummaries = pgTable('preference_summaries', {
   id: uuid('id').defaultRandom().primaryKey(),
   // MVP: single user, single row (latest wins).
@@ -77,7 +123,20 @@ export const appSettings = pgTable('app_settings', {
   llmProvider: text('llm_provider').notNull().default('openrouter'),
   llmModel: text('llm_model').notNull().default('openai/gpt-4o-mini'),
   scraperLlmModel: text('scraper_llm_model').notNull().default('openai/gpt-4o-mini'),
+  scoringDefaultEnabled: boolean('scoring_default_enabled').notNull().default(true),
   useEnvKey: boolean('use_env_key').notNull().default(true),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const jobs = pgTable('jobs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  type: text('type').notNull(), // scrape | score
+  status: text('status').notNull().default('queued'), // queued | running | done | error
+  payload: text('payload').notNull(), // JSON
+  runAt: timestamp('run_at', { withTimezone: true }).notNull().defaultNow(),
+  attempts: integer('attempts').notNull().default(0),
+  lastError: text('last_error'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

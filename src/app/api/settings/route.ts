@@ -12,6 +12,7 @@ export async function POST(req: Request) {
     llmProvider?: string;
     llmModel?: string;
     scraperLlmModel?: string;
+    scoringDefaultEnabled?: boolean;
     useEnvKey?: boolean;
   };
 
@@ -23,6 +24,10 @@ export async function POST(req: Request) {
         llmProvider: body.llmProvider ?? sql`${schema.appSettings.llmProvider}`,
         llmModel: body.llmModel ?? sql`${schema.appSettings.llmModel}`,
         scraperLlmModel: body.scraperLlmModel ?? sql`${schema.appSettings.scraperLlmModel}`,
+        scoringDefaultEnabled:
+          typeof body.scoringDefaultEnabled === 'boolean'
+            ? body.scoringDefaultEnabled
+            : sql`${schema.appSettings.scoringDefaultEnabled}`,
         useEnvKey: typeof body.useEnvKey === 'boolean' ? body.useEnvKey : sql`${schema.appSettings.useEnvKey}`,
         updatedAt: sql`now()`,
       })
@@ -37,6 +42,7 @@ export async function POST(req: Request) {
       llmProvider: body.llmProvider ?? 'openrouter',
       llmModel: body.llmModel ?? 'openai/gpt-4o-mini',
       scraperLlmModel: body.scraperLlmModel ?? (body.llmModel ?? 'openai/gpt-4o-mini'),
+      scoringDefaultEnabled: body.scoringDefaultEnabled ?? true,
       useEnvKey: body.useEnvKey ?? true,
     })
     .returning();

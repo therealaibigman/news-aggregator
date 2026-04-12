@@ -86,6 +86,11 @@ export async function refreshSourceById(sourceId: string) {
   const source = src[0];
   if (!source || !source.enabled) return { ok: false, skipped: true as const };
 
+  // Respect global default unless overridden per source.
+  const settings = await db.select().from(schema.appSettings).limit(1);
+  const defaultScoring = settings[0]?.scoringDefaultEnabled ?? true;
+  const effectiveScoring = source.scoringOverride ? source.scoringEnabled : defaultScoring;
+
   const rec = await db
     .select()
     .from(schema.sourceRecipes)
@@ -127,7 +132,7 @@ export async function refreshSourceById(sourceId: string) {
       throw new Error(`unsupported kind ${recipeRow.kind}`);
     }
 
-    return { ok: true as const };
+    return { ok: true as const, effectiveScoring };
   } catch (e: unknown) {
     return { ok: false as const, error: String((e as { message?: string } | null)?.message ?? e) };
   }

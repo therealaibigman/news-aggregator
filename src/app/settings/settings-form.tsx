@@ -6,6 +6,7 @@ type Settings = {
   llmProvider: string;
   llmModel: string;
   scraperLlmModel: string;
+  scoringDefaultEnabled: boolean;
   useEnvKey: boolean;
 } | null;
 
@@ -23,6 +24,7 @@ export function SettingsForm() {
           llmProvider: 'openrouter',
           llmModel: 'openai/gpt-4o-mini',
           scraperLlmModel: 'openai/gpt-4o-mini',
+          scoringDefaultEnabled: true,
           useEnvKey: true,
         }),
       );
@@ -91,6 +93,18 @@ export function SettingsForm() {
         />
         <label htmlFor="useEnvKey" className="text-sm">
           Use API key from .env
+        </label>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          id="scoringDefaultEnabled"
+          type="checkbox"
+          checked={settings.scoringDefaultEnabled}
+          onChange={(e) => setSettings({ ...settings, scoringDefaultEnabled: e.target.checked })}
+        />
+        <label htmlFor="scoringDefaultEnabled" className="text-sm">
+          Enable scoring by default
         </label>
       </div>
 

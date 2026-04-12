@@ -18,9 +18,14 @@ export default async function Home() {
     <div className="min-h-screen p-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">News Aggregator</h1>
-        <Link className="text-sm underline" href="/settings">
-          Settings
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link className="text-sm underline" href="/articles">
+            Articles
+          </Link>
+          <Link className="text-sm underline" href="/settings">
+            Settings
+          </Link>
+        </div>
       </div>
       <p className="text-sm text-gray-600 mt-2">Sources + Articles (MVP)</p>
 
