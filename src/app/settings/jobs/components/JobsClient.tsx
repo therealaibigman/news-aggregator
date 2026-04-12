@@ -56,6 +56,20 @@ export function JobsClient() {
     await load();
   }
 
+  async function clearDone() {
+    setMsg(null);
+    await fetch('/api/jobs/clear-done', { method: 'POST' });
+    setMsg('Cleared done jobs');
+    await load();
+  }
+
+  async function clearErrors() {
+    setMsg(null);
+    await fetch('/api/jobs/clear-errors', { method: 'POST' });
+    setMsg('Cleared error jobs');
+    await load();
+  }
+
   async function retry(jobId: string) {
     setMsg(null);
     await fetch('/api/jobs/retry', {
@@ -77,7 +91,13 @@ export function JobsClient() {
           Run worker
         </button>
         <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={clear}>
-          Clear
+          Clear done+error
+        </button>
+        <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={clearDone}>
+          Clear done
+        </button>
+        <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={clearErrors}>
+          Clear errors
         </button>
         <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={load}>
           Refresh

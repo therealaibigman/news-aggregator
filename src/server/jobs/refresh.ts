@@ -2,7 +2,7 @@ import { db } from '../db';
 import * as schema from '../db/schema';
 import { scrapeSource } from '../scrapers';
 import { eq } from 'drizzle-orm';
-import { runRecipe } from '../sources/recipe';
+import { runRecipePaged } from '../sources/recipe';
 import { tryExtractFeed } from '../sources/rss';
 
 export async function refreshCointelegraph() {
@@ -71,7 +71,7 @@ export async function refreshFromRecipe(sourceBaseUrl: string) {
 
   if (r.kind === 'recipe') {
     const recipe = JSON.parse(r.content);
-    const items = await runRecipe(sourceBaseUrl, recipe);
+    const items = await runRecipePaged(sourceBaseUrl, recipe);
     for (const item of items) {
       await db
         .insert(schema.articles)
@@ -121,7 +121,7 @@ export async function refreshSourceById(sourceId: string) {
       }
     } else if (recipeRow.kind === 'recipe') {
       const recipe = JSON.parse(recipeRow.content);
-      const items = await runRecipe(source.baseUrl, recipe);
+      const items = await runRecipePaged(source.baseUrl, recipe);
       for (const item of items) {
         await db
           .insert(schema.articles)

@@ -1,7 +1,7 @@
 import { db } from '@/server/db';
 import * as schema from '@/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { runRecipe } from '@/server/sources/recipe';
+import { runRecipePaged } from '@/server/sources/recipe';
 import { tryExtractFeed } from '@/server/sources/rss';
 
 export async function POST(req: Request) {
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
     if (recipeRow.kind === 'recipe') {
       const recipe = JSON.parse(recipeRow.content);
-      const items = await runRecipe(source.baseUrl, recipe);
+      const items = await runRecipePaged(source.baseUrl, recipe);
       return Response.json({ ok: true, kind: 'recipe', preview: items.slice(0, 10), recipe });
     }
 

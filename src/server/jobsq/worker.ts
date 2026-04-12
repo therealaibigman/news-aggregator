@@ -33,7 +33,7 @@ export async function runWorkerOnce(maxJobs = 10) {
         for update skip locked
         limit 1
       )
-      returning id, type, status, payload;
+      returning id, type, status, payload, attempts;
     `);
 
     // drizzle returns rows differently depending on driver, normalize.

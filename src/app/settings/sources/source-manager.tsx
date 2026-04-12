@@ -65,13 +65,23 @@ export function SourceManager() {
 
   async function approve(sourceId: string, approved: boolean) {
     setMsg(null);
-    const res = await fetch('/api/recipes/approve', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ sourceId, approved }),
-    });
-    const data = await res.json();
-    setMsg(data.ok ? `Updated: approved=${String(approved)}` : `Error: ${data.error}`);
+    if (approved) {
+      const res = await fetch('/api/recipes/approve-safe', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ sourceId }),
+      });
+      const data = await res.json();
+      setMsg(data.ok ? 'Approved (validated)' : `Approve failed: ${data.error}`);
+    } else {
+      const res = await fetch('/api/recipes/approve', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ sourceId, approved }),
+      });
+      const data = await res.json();
+      setMsg(data.ok ? 'Unapproved' : `Error: ${data.error}`);
+    }
     startTransition(() => {
       window.location.reload();
     });
