@@ -11,6 +11,8 @@
     "db:migrate": "node -r dotenv/config ./node_modules/.bin/drizzle-kit migrate",
     "job:refresh": "node -r dotenv/config ./node_modules/.bin/tsx src/server/scripts/refresh.ts",
     "job:scheduler": "node -r dotenv/config ./node_modules/.bin/tsx src/server/scripts/scheduler.ts",
+    "job:dispatch": "node -r dotenv/config ./node_modules/.bin/tsx src/server/scripts/dispatch.ts",
+    "job:worker": "node -r dotenv/config ./node_modules/.bin/tsx src/server/scripts/worker.ts",
     "job:prefs": "node -r dotenv/config ./node_modules/.bin/tsx src/server/scripts/prefs.ts"
   },
   "dependencies": {

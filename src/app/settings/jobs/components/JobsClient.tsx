@@ -56,6 +56,17 @@ export function JobsClient() {
     await load();
   }
 
+  async function retry(jobId: string) {
+    setMsg(null);
+    await fetch('/api/jobs/retry', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jobId }),
+    });
+    setMsg('Retried');
+    await load();
+  }
+
   return (
     <div className="mt-6">
       <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -82,6 +93,11 @@ export function JobsClient() {
             </div>
             <div className="text-gray-600">runAt: {j.runAt}</div>
             {j.lastError ? <div className="mt-1 text-red-700">error: {j.lastError}</div> : null}
+            <div className="mt-2 flex items-center gap-2">
+              <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => retry(j.id)}>
+                Retry now
+              </button>
+            </div>
             <details className="mt-2">
               <summary className="cursor-pointer underline">payload</summary>
               <pre className="mt-2 max-h-48 overflow-auto rounded bg-gray-50 p-2">{j.payload}</pre>

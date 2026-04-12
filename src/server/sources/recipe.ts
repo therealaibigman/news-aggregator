@@ -1,4 +1,5 @@
 import { JSDOM } from 'jsdom';
+import { assertSameHost } from '../recipes/validate';
 
 export type Recipe = {
   version: 1;
@@ -36,7 +37,7 @@ export async function runRecipe(baseUrl: string, recipe: Recipe): Promise<Recipe
     const linkEl = el.querySelector(recipe.list.linkSelector) as HTMLAnchorElement | null;
     const href = linkEl?.getAttribute('href') ?? '';
     if (!href) continue;
-    const url = new URL(href, baseUrl).toString();
+    const url = assertSameHost(baseUrl, href);
 
     const title = recipe.list.titleSelector
       ? (el.querySelector(recipe.list.titleSelector)?.textContent ?? '').trim()

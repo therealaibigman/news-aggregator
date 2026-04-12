@@ -1,6 +1,6 @@
 import { db } from '../db';
 import * as schema from '../db/schema';
-import { asc, eq, lte, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { refreshSourceById } from '../jobs/refresh';
 import { scoreLatestUnscored } from '../scoring/score';
 
@@ -19,28 +19,29 @@ export async function enqueueJob(payload: JobPayload, runAt: Date = new Date()) 
 export async function runWorkerOnce(maxJobs = 10) {
   const now = new Date();
 
-  const jobs = await db
-    .select()
-    .from(schema.jobs)
-    .where(lte(schema.jobs.runAt, now))
-    .orderBy(asc(schema.jobs.runAt))
-    .limit(maxJobs);
-
   let processed = 0;
 
-  for (const j of jobs) {
-    if (j.status !== 'queued') continue;
+  for (let i = 0; i < maxJobs; i++) {
+    // Atomic-ish claim: pick one queued job due now and flip it to running.
+    const claimed = await db.execute(sql`
+      update jobs
+      set status = 'running', attempts = attempts + 1, updated_at = now()
+      where id = (
+        select id from jobs
+        where status = 'queued' and run_at <= ${now}
+        order by run_at asc
+        for update skip locked
+        limit 1
+      )
+      returning id, type, status, payload;
+    `);
 
-    // Claim job.
-    const claimed = await db
-      .update(schema.jobs)
-      .set({ status: 'running', attempts: sql`${schema.jobs.attempts} + 1`, updatedAt: sql`now()` })
-      .where(eq(schema.jobs.id, j.id))
-      .returning();
+    // drizzle returns rows differently depending on driver, normalize.
+    // @ts-expect-error driver-specific
+    const row = claimed?.rows?.[0] ?? (Array.isArray(claimed) ? claimed[0] : null);
+    if (!row?.id) break;
 
-    if (!claimed[0] || claimed[0].status !== 'running') continue;
-
-    const payload = JSON.parse(j.payload) as JobPayload;
+    const payload = JSON.parse(row.payload) as JobPayload;
 
     try {
       if (payload.type === 'scrape') {
@@ -87,12 +88,21 @@ export async function runWorkerOnce(maxJobs = 10) {
       await db
         .update(schema.jobs)
         .set({ status: 'done', lastError: null, updatedAt: sql`now()` })
-        .where(eq(schema.jobs.id, j.id));
+        .where(eq(schema.jobs.id, row.id));
     } catch (e: unknown) {
+      // Job retry backoff: 10s, 30s, 2m, 10m, 1h
+      const msg = String((e as { message?: string } | null)?.message ?? e);
+      const att = Number(row.attempts ?? 1);
+      const secs = att === 1 ? 10 : att === 2 ? 30 : att === 3 ? 120 : att === 4 ? 600 : 3600;
       await db
         .update(schema.jobs)
-        .set({ status: 'error', lastError: String((e as { message?: string } | null)?.message ?? e), updatedAt: sql`now()` })
-        .where(eq(schema.jobs.id, j.id));
+        .set({
+          status: 'queued',
+          lastError: msg,
+          runAt: sql`now() + (${secs} || ' seconds')::interval`,
+          updatedAt: sql`now()`,
+        })
+        .where(eq(schema.jobs.id, row.id));
     }
 
     processed++;
