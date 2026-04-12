@@ -51,6 +51,15 @@ export const feedback = pgTable(
       .notNull()
       .references(() => articles.id, { onDelete: 'cascade' }),
     value: integer('value').notNull(), // -1 dislike, +1 like
+    notes: text('notes'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
 );
+
+export const preferenceSummaries = pgTable('preference_summaries', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  // MVP: single user, single row (latest wins).
+  kind: text('kind').notNull(), // 'global'
+  content: text('content').notNull(), // compact LLM-readable summary
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});

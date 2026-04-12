@@ -35,6 +35,11 @@ export default async function Home() {
       </div>
 
       <ArticleList />
+
+      <div className="mt-10">
+        <div className="text-sm font-semibold">Preference summary (LLM-readable)</div>
+        <div className="text-xs text-gray-600">POST /api/prefs to regenerate from feedback.</div>
+      </div>
     </div>
   );
 }
