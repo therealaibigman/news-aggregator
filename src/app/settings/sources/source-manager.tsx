@@ -77,6 +77,31 @@ export function SourceManager() {
     });
   }
 
+  async function runNow(sourceId: string) {
+    setMsg(null);
+    // dispatch due scrapes then drain worker
+    await fetch('/api/jobs/dispatch', { method: 'POST' });
+    await fetch('/api/jobs/run', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ maxJobs: 25 }),
+    });
+    setMsg(`Dispatched + ran jobs for source ${sourceId}.`);
+    startTransition(() => window.location.reload());
+  }
+
+  async function updateScoring(sourceId: string, scoringOverride: boolean, scoringEnabled: boolean) {
+    setMsg(null);
+    const res = await fetch('/api/sources/scoring', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sourceId, scoringOverride, scoringEnabled }),
+    });
+    const data = await res.json();
+    setMsg(data.ok ? 'Scoring updated' : `Error: ${data.error}`);
+    startTransition(() => window.location.reload());
+  }
+
   return (
     <div className="rounded border bg-white p-4">
       <div className="font-semibold">Add source</div>
@@ -117,6 +142,18 @@ export function SourceManager() {
               </button>
               <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => approve(r.source.id, false)}>
                 Unapprove
+              </button>
+              <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => runNow(r.source.id)}>
+                Run worker
+              </button>
+              <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => updateScoring(r.source.id, true, true)}>
+                Scoring: ON (override)
+              </button>
+              <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => updateScoring(r.source.id, true, false)}>
+                Scoring: OFF (override)
+              </button>
+              <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => updateScoring(r.source.id, false, true)}>
+                Scoring: Inherit default
               </button>
             </div>
           ))}

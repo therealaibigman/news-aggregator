@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ArticlesClient } from './components/ArticlesClient';
 
 export default function ArticlesPage() {
   return (
@@ -15,7 +16,7 @@ export default function ArticlesPage() {
         </div>
       </div>
 
-      <div className="mt-6 text-sm text-gray-700">UI upgrade placeholder. Next: filters + list + why panel.</div>
+      <ArticlesClient />
     </div>
   );
 }

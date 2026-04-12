@@ -44,6 +44,16 @@ export default async function SourcesSettingsPage() {
               <div className="mt-2 text-xs text-gray-600">
                 recipe: {recipe ? `${recipe.kind} (approved=${String(recipe.approved)})` : 'none'}
               </div>
+              <div className="mt-2 text-xs text-gray-600">
+                last: {source.lastRunAt ? source.lastRunAt.toISOString() : 'never'} · status: {source.lastStatus ?? '—'}
+                {source.lastError ? ` · error: ${source.lastError}` : ''}
+              </div>
+              <div className="mt-2 text-xs text-gray-600">
+                backoff: failCount={source.failCount} · nextRunAt={source.nextRunAt ? source.nextRunAt.toISOString() : '—'}
+              </div>
+              <div className="mt-2 text-xs text-gray-600">
+                scoring: override={String(source.scoringOverride)} · enabled={String(source.scoringEnabled)}
+              </div>
               {recipe ? (
                 <details className="mt-3">
                   <summary className="cursor-pointer text-sm underline">View recipe content</summary>
