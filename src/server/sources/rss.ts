@@ -8,14 +8,20 @@ export type RssItem = {
 };
 
 export async function tryExtractFeed(baseUrl: string): Promise<{ feedUrl: string; items: RssItem[] } | null> {
-  const candidates = [
-    new URL('/feed', baseUrl).toString(),
-    new URL('/rss', baseUrl).toString(),
-    new URL('/atom', baseUrl).toString(),
-    new URL('/rss.xml', baseUrl).toString(),
-    new URL('/feed.xml', baseUrl).toString(),
-    new URL('/index.xml', baseUrl).toString(),
-  ];
+  // If baseUrl already looks like a feed URL, try it first.
+  const looksLikeFeed =
+    baseUrl.endsWith('.xml') || baseUrl.includes('/feed') || baseUrl.includes('/rss') || baseUrl.includes('/atom');
+
+  const candidates = looksLikeFeed
+    ? [baseUrl]
+    : [
+        new URL('/feed', baseUrl).toString(),
+        new URL('/rss', baseUrl).toString(),
+        new URL('/atom', baseUrl).toString(),
+        new URL('/rss.xml', baseUrl).toString(),
+        new URL('/feed.xml', baseUrl).toString(),
+        new URL('/index.xml', baseUrl).toString(),
+      ];
 
   for (const feedUrl of candidates) {
     try {

@@ -23,6 +23,16 @@ export default function SettingsPage() {
         </section>
 
         <section className="rounded border bg-white p-4">
+          <div className="font-semibold">Jobs</div>
+          <div className="mt-1 text-sm text-gray-700">Inspect queue, dispatch, run worker, and debug errors.</div>
+          <div className="mt-3">
+            <Link className="text-sm underline" href="/settings/jobs">
+              Manage jobs
+            </Link>
+          </div>
+        </section>
+
+        <section className="rounded border bg-white p-4">
           <div className="font-semibold">LLM provider</div>
           <div className="mt-1 text-sm text-gray-700">
             Choose provider + model. API key stays in <code className="rounded bg-gray-100 px-1">.env</code> for now.

@@ -79,14 +79,19 @@ export function SourceManager() {
 
   async function runNow(sourceId: string) {
     setMsg(null);
-    // dispatch due scrapes then drain worker
-    await fetch('/api/jobs/dispatch', { method: 'POST' });
-    await fetch('/api/jobs/run', {
+    // enqueue this source scrape then drain worker
+    await fetch('/api/jobs/enqueue', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'scrape', sourceId }),
+    });
+    const ran = await fetch('/api/jobs/run', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ maxJobs: 25 }),
     });
-    setMsg(`Dispatched + ran jobs for source ${sourceId}.`);
+    const data = await ran.json().catch(() => null);
+    setMsg(`Ran worker. processed=${data?.processed ?? '?'}`);
     startTransition(() => window.location.reload());
   }
 
