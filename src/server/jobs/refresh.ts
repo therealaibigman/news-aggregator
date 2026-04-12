@@ -2,6 +2,8 @@ import { db } from '../db';
 import * as schema from '../db/schema';
 import { scrapeSource } from '../scrapers';
 import { eq } from 'drizzle-orm';
+import { runRecipe } from '../sources/recipe';
+import { tryExtractFeed } from '../sources/rss';
 
 export async function refreshCointelegraph() {
   const source = await db
@@ -26,5 +28,55 @@ export async function refreshCointelegraph() {
         publishedAt: item.publishedAt,
       })
       .onConflictDoNothing();
+  }
+}
+
+export async function refreshFromRecipe(sourceBaseUrl: string) {
+  const source = await db
+    .select({ id: schema.sources.id })
+    .from(schema.sources)
+    .where(eq(schema.sources.baseUrl, sourceBaseUrl))
+    .limit(1);
+
+  const sourceId = source[0]?.id;
+  if (!sourceId) return;
+
+  const rec = await db
+    .select()
+    .from(schema.sourceRecipes)
+    .where(eq(schema.sourceRecipes.sourceId, sourceId))
+    .limit(1);
+
+  const r = rec[0];
+  if (!r || !r.approved) return;
+
+  if (r.kind === 'rss') {
+    const { feedUrl } = JSON.parse(r.content) as { feedUrl: string };
+    const feed = await tryExtractFeed(feedUrl);
+    if (!feed) return;
+    for (const item of feed.items) {
+      await db
+        .insert(schema.articles)
+        .values({
+          sourceId,
+          url: item.url,
+          title: item.title,
+          summary: item.summary,
+          publishedAt: item.publishedAt,
+        })
+        .onConflictDoNothing();
+    }
+    return;
+  }
+
+  if (r.kind === 'recipe') {
+    const recipe = JSON.parse(r.content);
+    const items = await runRecipe(sourceBaseUrl, recipe);
+    for (const item of items) {
+      await db
+        .insert(schema.articles)
+        .values({ sourceId, url: item.url, title: item.title, summary: item.summary })
+        .onConflictDoNothing();
+    }
   }
 }

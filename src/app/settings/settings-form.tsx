@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 type Settings = {
   llmProvider: string;
   llmModel: string;
+  scraperLlmModel: string;
   useEnvKey: boolean;
 } | null;
 
@@ -17,7 +18,14 @@ export function SettingsForm() {
     fetch('/api/settings', { cache: 'no-store' })
       .then((r) => r.json())
       .then((d) => setSettings(d))
-      .catch(() => setSettings({ llmProvider: 'openrouter', llmModel: 'openai/gpt-4o-mini', useEnvKey: true }));
+      .catch(() =>
+        setSettings({
+          llmProvider: 'openrouter',
+          llmModel: 'openai/gpt-4o-mini',
+          scraperLlmModel: 'openai/gpt-4o-mini',
+          useEnvKey: true,
+        }),
+      );
   }, []);
 
   async function save() {
@@ -61,6 +69,17 @@ export function SettingsForm() {
           placeholder="openai/gpt-4o-mini"
         />
         <div className="text-xs text-gray-600">Free-form. Use any model id your provider supports.</div>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-sm">Scraper generation model</label>
+        <input
+          className="w-full max-w-xl rounded border px-2 py-1"
+          value={settings.scraperLlmModel}
+          onChange={(e) => setSettings({ ...settings, scraperLlmModel: e.target.value })}
+          placeholder="openai/gpt-4o-mini"
+        />
+        <div className="text-xs text-gray-600">Defaults to the main model. Used only when generating new source recipes.</div>
       </div>
 
       <div className="flex items-center gap-2">

@@ -73,6 +73,29 @@ export const appSettings = pgTable('app_settings', {
   // MVP: single row
   llmProvider: text('llm_provider').notNull().default('openrouter'),
   llmModel: text('llm_model').notNull().default('openai/gpt-4o-mini'),
+  scraperLlmModel: text('scraper_llm_model').notNull().default('openai/gpt-4o-mini'),
   useEnvKey: boolean('use_env_key').notNull().default(true),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const sourceRecipes = pgTable(
+  'source_recipes',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    sourceId: uuid('source_id')
+      .notNull()
+      .references(() => sources.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(), // rss | recipe | code
+    host: text('host').notNull(),
+    // JSON text for recipe, or TS code for fallback.
+    content: text('content').notNull(),
+    approved: boolean('approved').notNull().default(false),
+    lastTestedAt: timestamp('last_tested_at', { withTimezone: true }),
+    lastTestStatus: text('last_test_status'),
+    lastTestError: text('last_test_error'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    sourceIdIdx: uniqueIndex('source_recipes_source_id_idx').on(t.sourceId),
+  }),
+);

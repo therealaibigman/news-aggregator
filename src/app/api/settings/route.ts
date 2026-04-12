@@ -8,7 +8,12 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const body = (await req.json()) as { llmProvider?: string; llmModel?: string; useEnvKey?: boolean };
+  const body = (await req.json()) as {
+    llmProvider?: string;
+    llmModel?: string;
+    scraperLlmModel?: string;
+    useEnvKey?: boolean;
+  };
 
   const existing = await db.select({ id: schema.appSettings.id }).from(schema.appSettings).limit(1);
   if (existing[0]?.id) {
@@ -17,6 +22,7 @@ export async function POST(req: Request) {
       .set({
         llmProvider: body.llmProvider ?? sql`${schema.appSettings.llmProvider}`,
         llmModel: body.llmModel ?? sql`${schema.appSettings.llmModel}`,
+        scraperLlmModel: body.scraperLlmModel ?? sql`${schema.appSettings.scraperLlmModel}`,
         useEnvKey: typeof body.useEnvKey === 'boolean' ? body.useEnvKey : sql`${schema.appSettings.useEnvKey}`,
         updatedAt: sql`now()`,
       })
@@ -30,6 +36,7 @@ export async function POST(req: Request) {
     .values({
       llmProvider: body.llmProvider ?? 'openrouter',
       llmModel: body.llmModel ?? 'openai/gpt-4o-mini',
+      scraperLlmModel: body.scraperLlmModel ?? (body.llmModel ?? 'openai/gpt-4o-mini'),
       useEnvKey: body.useEnvKey ?? true,
     })
     .returning();
