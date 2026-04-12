@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SettingsForm } from './settings-form';
 
 export default function SettingsPage() {
   return (
@@ -11,6 +12,16 @@ export default function SettingsPage() {
       </div>
 
       <div className="mt-6 space-y-4">
+        <section className="rounded border bg-white p-4">
+          <div className="font-semibold">LLM provider</div>
+          <div className="mt-1 text-sm text-gray-700">
+            Choose provider + model. API key stays in <code className="rounded bg-gray-100 px-1">.env</code> for now.
+          </div>
+          <div className="mt-3">
+            <SettingsForm />
+          </div>
+        </section>
+
         <section className="rounded border bg-white p-4">
           <div className="font-semibold">Preference summary (LLM-readable)</div>
           <div className="mt-1 text-sm text-gray-700">

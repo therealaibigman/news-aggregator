@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { db } from '../db';
 import * as schema from '../db/schema';
 import { refreshCointelegraph } from '../jobs/refresh';
+import { scoreLatestUnscored } from '../scoring/score';
 
 const DEFAULT_REFRESH_MINUTES = Number(process.env.REFRESH_MINUTES ?? 30);
 
@@ -19,6 +20,7 @@ async function ensureDefaults() {
 async function tickOnce() {
   // For MVP: only cointelegraph.
   await refreshCointelegraph();
+  await scoreLatestUnscored(25);
 }
 
 async function main() {

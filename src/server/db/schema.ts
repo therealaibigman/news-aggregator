@@ -37,6 +37,10 @@ export const articles = pgTable(
     scrapedAt: timestamp('scraped_at', { withTimezone: true }).notNull().defaultNow(),
     embedding: text('embedding'),
     interestScore: integer('interest_score'),
+    interestReason: text('interest_reason'),
+    interestLabels: text('interest_labels'),
+    scoredAt: timestamp('scored_at', { withTimezone: true }),
+    scoringModel: text('scoring_model'),
   },
   (t) => ({
     urlIdx: uniqueIndex('articles_url_idx').on(t.url),
@@ -61,5 +65,14 @@ export const preferenceSummaries = pgTable('preference_summaries', {
   // MVP: single user, single row (latest wins).
   kind: text('kind').notNull(), // 'global'
   content: text('content').notNull(), // compact LLM-readable summary
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const appSettings = pgTable('app_settings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  // MVP: single row
+  llmProvider: text('llm_provider').notNull().default('openrouter'),
+  llmModel: text('llm_model').notNull().default('openai/gpt-4o-mini'),
+  useEnvKey: boolean('use_env_key').notNull().default(true),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
