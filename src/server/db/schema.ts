@@ -16,6 +16,9 @@ export const sources = pgTable(
     baseUrl: text('base_url').notNull(),
     enabled: boolean('enabled').notNull().default(true),
     refreshMinutes: integer('refresh_minutes'),
+    lastRunAt: timestamp('last_run_at', { withTimezone: true }),
+    lastStatus: text('last_status'),
+    lastError: text('last_error'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({
