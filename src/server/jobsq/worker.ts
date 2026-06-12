@@ -8,6 +8,14 @@ type JobPayload =
   | { type: 'scrape'; sourceId: string }
   | { type: 'score'; limit?: number };
 
+type ClaimedJobRow = {
+  id: string;
+  type: string;
+  status: string;
+  payload: string;
+  attempts: number;
+};
+
 export async function enqueueJob(payload: JobPayload, runAt: Date = new Date()) {
   await db.insert(schema.jobs).values({
     type: payload.type,
@@ -37,8 +45,8 @@ export async function runWorkerOnce(maxJobs = 10) {
     `);
 
     // drizzle returns rows differently depending on driver, normalize.
-    // @ts-expect-error driver-specific
-    const row = claimed?.rows?.[0] ?? (Array.isArray(claimed) ? claimed[0] : null);
+    const result = claimed as unknown as { rows?: ClaimedJobRow[] } | ClaimedJobRow[];
+    const row = Array.isArray(result) ? result[0] : result.rows?.[0] ?? null;
     if (!row?.id) break;
 
     const payload = JSON.parse(row.payload) as JobPayload;

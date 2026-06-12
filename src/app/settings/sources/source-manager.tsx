@@ -118,58 +118,60 @@ export function SourceManager() {
   }
 
   return (
-    <div className="rounded border bg-white p-4">
-      <div className="font-semibold">Add source</div>
-      <div className="mt-3 grid gap-2 max-w-2xl">
+    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="text-sm font-semibold text-slate-950">Add source</div>
+      <div className="mt-3 grid max-w-3xl gap-2">
         <input
-          className="rounded border px-2 py-2 text-sm"
+          className="h-10 rounded-md border border-slate-300 px-3 text-sm text-slate-950"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://example.com or an article URL"
         />
         <input
-          className="rounded border px-2 py-2 text-sm"
+          className="h-10 rounded-md border border-slate-300 px-3 text-sm text-slate-950"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Optional name"
         />
         <button
-          className="w-fit rounded border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
+          className="w-fit rounded-md bg-slate-950 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
           disabled={!url || pending}
           onClick={autoAdd}
         >
           Auto-add (RSS then LLM recipe)
         </button>
-        {msg ? <div className="text-sm text-gray-700">{msg}</div> : null}
+        {msg ? <div className="text-sm text-slate-600">{msg}</div> : null}
       </div>
 
       <div className="mt-6">
-        <div className="text-sm font-semibold">Actions</div>
-        <div className="mt-2 flex flex-col gap-2">
+        <div className="text-sm font-semibold text-slate-950">Actions</div>
+        <div className="mt-3 grid gap-2">
           {rows.map((r) => (
-            <div key={r.source.id} className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-gray-700">{r.source.baseUrl}</span>
-              <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => testRecipe(r.source.id)}>
+            <div key={r.source.id} className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
+              <div className="mb-2 truncate font-medium text-slate-700">{r.source.baseUrl}</div>
+              <div className="flex flex-wrap items-center gap-2">
+              <button className="rounded-md border border-slate-300 bg-white px-2 py-1 font-medium text-slate-700 hover:bg-slate-50" onClick={() => testRecipe(r.source.id)}>
                 Test recipe
               </button>
-              <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => approve(r.source.id, true)}>
+              <button className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 font-medium text-emerald-700 hover:bg-emerald-100" onClick={() => approve(r.source.id, true)}>
                 Approve
               </button>
-              <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => approve(r.source.id, false)}>
+              <button className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 font-medium text-amber-700 hover:bg-amber-100" onClick={() => approve(r.source.id, false)}>
                 Unapprove
               </button>
-              <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => runNow(r.source.id)}>
+              <button className="rounded-md border border-slate-300 bg-white px-2 py-1 font-medium text-slate-700 hover:bg-slate-50" onClick={() => runNow(r.source.id)}>
                 Run worker
               </button>
-              <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => updateScoring(r.source.id, true, true)}>
+              <button className="rounded-md border border-slate-300 bg-white px-2 py-1 font-medium text-slate-700 hover:bg-slate-50" onClick={() => updateScoring(r.source.id, true, true)}>
                 Scoring: ON (override)
               </button>
-              <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => updateScoring(r.source.id, true, false)}>
+              <button className="rounded-md border border-slate-300 bg-white px-2 py-1 font-medium text-slate-700 hover:bg-slate-50" onClick={() => updateScoring(r.source.id, true, false)}>
                 Scoring: OFF (override)
               </button>
-              <button className="rounded border px-2 py-1 hover:bg-gray-50" onClick={() => updateScoring(r.source.id, false, true)}>
+              <button className="rounded-md border border-slate-300 bg-white px-2 py-1 font-medium text-slate-700 hover:bg-slate-50" onClick={() => updateScoring(r.source.id, false, true)}>
                 Scoring: Inherit default
               </button>
+              </div>
             </div>
           ))}
         </div>
@@ -177,8 +179,8 @@ export function SourceManager() {
 
       {preview ? (
         <details className="mt-6">
-          <summary className="cursor-pointer text-sm underline">Preview</summary>
-          <pre className="mt-2 max-h-80 overflow-auto rounded bg-gray-50 p-3 text-xs">{JSON.stringify(preview, null, 2)}</pre>
+          <summary className="cursor-pointer text-sm font-medium text-slate-700">Preview</summary>
+          <pre className="mt-2 max-h-80 overflow-auto rounded-md bg-slate-950 p-3 text-xs text-slate-100">{JSON.stringify(preview, null, 2)}</pre>
         </details>
       ) : null}
     </div>

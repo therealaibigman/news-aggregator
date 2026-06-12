@@ -1,5 +1,6 @@
 import { db } from '@/server/db';
 import * as schema from '@/server/db/schema';
+import { eq } from 'drizzle-orm';
 
 function baseUrlFrom(input: string) {
   const u = new URL(input);
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
 
   // If source already existed, fetch it
   const sourceRow =
-    source ?? (await db.select().from(schema.sources).where((t, { eq }) => eq(t.baseUrl, baseUrl)).limit(1))[0];
+    source ?? (await db.select().from(schema.sources).where(eq(schema.sources.baseUrl, baseUrl)).limit(1))[0];
 
   if (!sourceRow) return Response.json({ ok: false, error: 'failed to upsert source' }, { status: 500 });
 

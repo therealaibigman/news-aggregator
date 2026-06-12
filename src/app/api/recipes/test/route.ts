@@ -36,6 +36,6 @@ export async function POST(req: Request) {
 
     return Response.json({ ok: false, error: `unsupported kind ${recipeRow.kind}` }, { status: 400 });
   } catch (e: unknown) {
-    return Response.json({ ok: false, error: String(e?.message ?? e) }, { status: 500 });
+    return Response.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
 }

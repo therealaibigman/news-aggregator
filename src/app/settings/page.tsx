@@ -1,73 +1,64 @@
 import Link from 'next/link';
+import { AppShell } from '../components/AppShell';
 import { SettingsForm } from './settings-form';
 
 export default function SettingsPage() {
   return (
-    <div className="min-h-screen p-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <Link className="text-sm underline" href="/">
-          Back
-        </Link>
-      </div>
-
-      <div className="mt-6 space-y-4">
-        <section className="rounded border bg-white p-4">
-          <div className="font-semibold">Sources</div>
-          <div className="mt-1 text-sm text-gray-700">Add sources, test generated recipes, and approve them.</div>
-          <div className="mt-3">
-            <Link className="text-sm underline" href="/settings/sources">
+    <AppShell title="Settings" description="Source operations, queue controls, provider settings, and preference maintenance.">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="text-sm font-semibold text-slate-950">Sources</div>
+          <div className="mt-1 text-sm leading-6 text-slate-600">Add sources, test generated recipes, approve scrapers, and run source-level jobs.</div>
+          <div className="mt-4">
+            <Link className="rounded-md bg-slate-950 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800" href="/settings/sources">
               Manage sources
             </Link>
           </div>
         </section>
 
-        <section className="rounded border bg-white p-4">
-          <div className="font-semibold">Jobs</div>
-          <div className="mt-1 text-sm text-gray-700">Inspect queue, dispatch, run worker, and debug errors.</div>
-          <div className="mt-3">
-            <Link className="text-sm underline" href="/settings/jobs">
+        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="text-sm font-semibold text-slate-950">Jobs</div>
+          <div className="mt-1 text-sm leading-6 text-slate-600">Inspect the queue, dispatch due work, run the worker, retry failures, and clear completed rows.</div>
+          <div className="mt-4">
+            <Link className="rounded-md bg-slate-950 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800" href="/settings/jobs">
               Manage jobs
             </Link>
           </div>
         </section>
 
-        <section className="rounded border bg-white p-4">
-          <div className="font-semibold">LLM provider</div>
-          <div className="mt-1 text-sm text-gray-700">
-            Choose provider + model. API key stays in <code className="rounded bg-gray-100 px-1">.env</code> for now.
+        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:col-span-2">
+          <div className="text-sm font-semibold text-slate-950">LLM provider</div>
+          <div className="mt-1 text-sm leading-6 text-slate-600">
+            Choose provider and model. API keys stay in <code className="rounded bg-slate-100 px-1">.env</code>.
           </div>
-          <div className="mt-3">
+          <div className="mt-4">
             <SettingsForm />
           </div>
         </section>
 
-        <section className="rounded border bg-white p-4">
-          <div className="font-semibold">Preference summary (LLM-readable)</div>
-          <div className="mt-1 text-sm text-gray-700">
-            This generates a compact, interpretable summary of your likes/dislikes for feeding into an LLM.
-          </div>
-
-          <div className="mt-3 flex flex-col gap-2">
+        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="text-sm font-semibold text-slate-950">Preference summary</div>
+          <div className="mt-1 text-sm leading-6 text-slate-600">Regenerate the compact, LLM-readable summary of likes and dislikes.</div>
+          <div className="mt-4 flex flex-wrap gap-2">
             <form action="/api/prefs" method="post">
-              <button className="w-fit rounded border px-3 py-2 text-sm hover:bg-gray-50" type="submit">
-                Regenerate summary
+              <button className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" type="submit">
+                Regenerate
               </button>
             </form>
-            <a className="text-sm underline" href="/api/prefs" target="_blank" rel="noreferrer">
-              View current summary (opens JSON)
+            <a className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" href="/api/prefs" target="_blank" rel="noreferrer">
+              View JSON
             </a>
           </div>
         </section>
 
-        <section className="rounded border bg-white p-4">
-          <div className="font-semibold">Scheduler</div>
-          <div className="mt-1 text-sm text-gray-700">
-            Run the scheduler via <code className="rounded bg-gray-100 px-1">npm run job:scheduler</code>. It uses
-            <code className="rounded bg-gray-100 px-1 ml-1">REFRESH_MINUTES</code> from <code className="rounded bg-gray-100 px-1">.env</code>.
+        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="text-sm font-semibold text-slate-950">Scheduler</div>
+          <div className="mt-1 text-sm leading-6 text-slate-600">
+            Run <code className="rounded bg-slate-100 px-1">npm run job:scheduler</code>. It uses{' '}
+            <code className="rounded bg-slate-100 px-1">REFRESH_MINUTES</code> from <code className="rounded bg-slate-100 px-1">.env</code>.
           </div>
         </section>
       </div>
-    </div>
+    </AppShell>
   );
 }
