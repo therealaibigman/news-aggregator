@@ -1,11 +1,13 @@
 import { db } from '@/server/db';
 import * as schema from '@/server/db/schema';
-import { desc, eq, sql } from 'drizzle-orm';
+import { asc, desc, eq, sql } from 'drizzle-orm';
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const limit = Math.min(Number(url.searchParams.get('limit') ?? 50), 200);
   const offset = Math.max(Number(url.searchParams.get('offset') ?? 0), 0);
+  const oldestFirst = url.searchParams.get('order') === 'oldest';
+  const articleTime = sql`coalesce(${schema.articles.publishedAt}, ${schema.articles.scrapedAt})`;
 
   const rows = await db
     .select({
@@ -29,7 +31,7 @@ export async function GET(req: Request) {
     .innerJoin(schema.sources, eq(schema.articles.sourceId, schema.sources.id))
     .leftJoin(schema.feedback, eq(schema.feedback.articleId, schema.articles.id))
     .groupBy(schema.articles.id, schema.sources.id)
-    .orderBy(desc(schema.articles.scrapedAt))
+    .orderBy(oldestFirst ? asc(articleTime) : desc(articleTime), desc(schema.articles.scrapedAt))
     .limit(limit)
     .offset(offset);
 

@@ -34,7 +34,7 @@ export function ArticleList() {
 
   async function load() {
     setLoading(true);
-    const res = await fetch('/api/articles?limit=100', { cache: 'no-store' });
+    const res = await fetch('/api/articles?limit=100&order=oldest', { cache: 'no-store' });
     const data = (await res.json()) as ArticleRow[];
     setRows(data);
     setLoading(false);
@@ -104,7 +104,7 @@ export function ArticleList() {
                     <article key={a.id} className="px-3 py-3">
                       <div className="mb-1 flex items-center justify-between gap-3 text-xs text-slate-500">
                         <span className="truncate">{a.baseUrl}</span>
-                        <span className="shrink-0">{relativeTime(a.scrapedAt)}</span>
+                        <span className="shrink-0">{relativeTime(a.publishedAt ?? a.scrapedAt)}</span>
                       </div>
                       <a className="text-sm font-medium leading-5 text-slate-950 hover:text-emerald-700" href={a.url} target="_blank" rel="noreferrer">
                         {a.title}
