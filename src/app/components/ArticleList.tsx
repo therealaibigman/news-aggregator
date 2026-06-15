@@ -34,7 +34,7 @@ export function ArticleList() {
 
   async function load() {
     setLoading(true);
-    const res = await fetch('/api/articles?limit=100&order=oldest', { cache: 'no-store' });
+    const res = await fetch('/api/articles?limit=100', { cache: 'no-store' });
     const data = (await res.json()) as ArticleRow[];
     setRows(data);
     setLoading(false);
