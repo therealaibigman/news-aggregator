@@ -48,17 +48,10 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
 
-      - name: Sync files to gecko-water
+      - name: Update checkout on gecko-water
         run: |
-          rsync -az --delete \
-            --exclude='.git/' \
-            --exclude='.github/' \
-            --exclude='.env' \
-            --exclude='.env.*' \
-            --exclude='.next/' \
-            --exclude='node_modules/' \
-            --exclude='drizzle/' \
-            ./ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" \
+            "set -e; cd '$DEPLOY_PATH'; git fetch --prune origin main; git reset --hard origin/main"
 
       - name: Build and reload PM2 on gecko-water
         run: |
