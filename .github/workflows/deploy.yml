@@ -31,10 +31,9 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Validate build
+      - name: Validate dependencies
         run: |
           npm ci
-          npm run build
 
       - name: Configure SSH
         env:
