@@ -4,6 +4,8 @@ import { AppShell, EmptyState, StatTile } from './components/AppShell';
 import { db } from '@/server/db';
 import * as schema from '@/server/db/schema';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const sources = await db.select().from(schema.sources);
   const enabled = sources.filter((s) => s.enabled).length;

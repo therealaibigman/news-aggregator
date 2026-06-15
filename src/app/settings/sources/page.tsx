@@ -3,6 +3,8 @@ import { db } from '@/server/db';
 import * as schema from '@/server/db/schema';
 import { SourceManager } from './source-manager';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SourcesSettingsPage() {
   const sources = await db.select().from(schema.sources);
   const recipes = await db.select().from(schema.sourceRecipes);
