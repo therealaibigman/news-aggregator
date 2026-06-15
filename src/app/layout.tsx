@@ -17,6 +17,20 @@ export const metadata: Metadata = {
   description: "A personal news intake, scoring, and source management dashboard.",
 };
 
+function ThemeScript() {
+  const code = `
+    try {
+      const saved = localStorage.getItem('theme');
+      const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = saved || preferred;
+    } catch {
+      document.documentElement.dataset.theme = 'light';
+    }
+  `;
+
+  return <script dangerouslySetInnerHTML={{ __html: code }} />;
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,7 +41,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        <ThemeScript />
+        {children}
+      </body>
     </html>
   );
 }

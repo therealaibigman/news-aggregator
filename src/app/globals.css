@@ -1,8 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  color-scheme: light;
+  --background: #f5f8fb;
+  --foreground: #0b1220;
+  --panel: #ffffff;
+  --panel-muted: #edf5fa;
+  --panel-soft: #f7fbfd;
+  --border: #cddde7;
+  --border-strong: #9cb4c4;
+  --muted: #526574;
+  --muted-strong: #334155;
+  --primary: #0891b2;
+  --primary-hover: #0e7490;
+  --accent: #65a30d;
+  --warning: #b45309;
+  --danger: #be123c;
+  --focus: #22d3ee;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #071018;
+  --foreground: #e5f2f8;
+  --panel: #0d1822;
+  --panel-muted: #142634;
+  --panel-soft: #0a141d;
+  --border: #203645;
+  --border-strong: #35576b;
+  --muted: #9bb0bd;
+  --muted-strong: #c6d7df;
+  --primary: #22d3ee;
+  --primary-hover: #67e8f9;
+  --accent: #a3e635;
+  --warning: #fbbf24;
+  --danger: #fb7185;
+  --focus: #67e8f9;
 }
 
 @theme inline {
@@ -37,7 +70,110 @@ a {
   text-underline-offset: 3px;
 }
 
+input,
+select,
+textarea {
+  background: var(--panel);
+  color: var(--foreground);
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 ::selection {
-  background: #b7f7df;
+  background: #a5f3fc;
   color: #0f172a;
+}
+
+[data-theme="dark"] .bg-white {
+  background-color: var(--panel) !important;
+}
+
+[data-theme="dark"] .bg-slate-50 {
+  background-color: var(--background) !important;
+}
+
+[data-theme="dark"] .bg-slate-100 {
+  background-color: var(--panel-muted) !important;
+}
+
+[data-theme="dark"] .bg-slate-950 {
+  background-color: #06111a !important;
+}
+
+[data-theme="dark"] .bg-emerald-50,
+[data-theme="dark"] .bg-emerald-50\/30 {
+  background-color: rgba(20, 83, 45, 0.28) !important;
+}
+
+[data-theme="dark"] .bg-amber-50 {
+  background-color: rgba(120, 53, 15, 0.28) !important;
+}
+
+[data-theme="dark"] .bg-red-50 {
+  background-color: rgba(136, 19, 55, 0.28) !important;
+}
+
+[data-theme="dark"] .border-slate-100,
+[data-theme="dark"] .border-slate-200,
+[data-theme="dark"] .border-slate-300 {
+  border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .border-emerald-200 {
+  border-color: rgba(74, 222, 128, 0.35) !important;
+}
+
+[data-theme="dark"] .border-amber-200 {
+  border-color: rgba(251, 191, 36, 0.35) !important;
+}
+
+[data-theme="dark"] .border-red-200 {
+  border-color: rgba(251, 113, 133, 0.35) !important;
+}
+
+[data-theme="dark"] .text-slate-950,
+[data-theme="dark"] .text-slate-900 {
+  color: var(--foreground) !important;
+}
+
+[data-theme="dark"] .text-slate-800,
+[data-theme="dark"] .text-slate-700,
+[data-theme="dark"] .text-slate-600 {
+  color: var(--muted-strong) !important;
+}
+
+[data-theme="dark"] .text-slate-500,
+[data-theme="dark"] .text-slate-400 {
+  color: var(--muted) !important;
+}
+
+[data-theme="dark"] .text-emerald-700 {
+  color: var(--accent) !important;
+}
+
+[data-theme="dark"] .text-amber-700 {
+  color: var(--warning) !important;
+}
+
+[data-theme="dark"] .text-red-700 {
+  color: var(--danger) !important;
+}
+
+[data-theme="dark"] .hover\:bg-white:hover,
+[data-theme="dark"] .hover\:bg-slate-50:hover,
+[data-theme="dark"] .hover\:bg-slate-800:hover {
+  background-color: var(--panel-muted) !important;
+}
+
+[data-theme="dark"] .hover\:text-slate-950:hover,
+[data-theme="dark"] .hover\:text-emerald-700:hover,
+[data-theme="dark"] .hover\:text-emerald-900:hover {
+  color: var(--primary-hover) !important;
 }

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { ThemeToggle } from './ThemeToggle';
 
 const navItems = [
   { href: '/', label: 'Dashboard' },
@@ -20,10 +21,11 @@ export function AppShell({
 }) {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-slate-200 bg-white shadow-sm">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div className="flex items-center gap-5">
-            <Link href="/" className="text-sm font-semibold tracking-wide text-slate-950">
+            <Link href="/" className="flex items-center gap-2 text-sm font-semibold tracking-wide text-slate-950">
+              <span className="h-2.5 w-2.5 rounded-full bg-cyan-500 shadow-[0_0_0_3px_rgba(34,211,238,0.16)]" />
               News Aggregator
             </Link>
             <nav className="flex items-center gap-1 rounded-md bg-slate-100 p-1 text-sm">
@@ -38,7 +40,10 @@ export function AppShell({
               ))}
             </nav>
           </div>
-          {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <ThemeToggle />
+            {actions}
+          </div>
         </div>
       </header>
 
