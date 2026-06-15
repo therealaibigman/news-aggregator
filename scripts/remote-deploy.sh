@@ -38,6 +38,7 @@ if ! command -v pm2 >/dev/null 2>&1; then
   exit 1
 fi
 
-PM2_APP_NAME="$PM2_APP_NAME" PORT="$PORT" pm2 startOrRestart ecosystem.config.cjs --update-env
+pm2 delete "$PM2_APP_NAME" >/dev/null 2>&1 || true
+PM2_APP_NAME="$PM2_APP_NAME" PORT="$PORT" pm2 start ecosystem.config.cjs --update-env
 pm2 save
 pm2 status "$PM2_APP_NAME"
