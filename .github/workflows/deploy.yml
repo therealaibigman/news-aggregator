@@ -17,7 +17,7 @@ jobs:
     env:
       DEPLOY_HOST: ${{ secrets.GECKO_WATER_HOST }}
       DEPLOY_USER: ${{ secrets.GECKO_WATER_USER }}
-      DEPLOY_PATH: ${{ vars.GECKO_WATER_DEPLOY_PATH || '/home/exedev/.openclaw/workspace/news-aggregator' }}
+      DEPLOY_PATH: ${{ vars.GECKO_WATER_DEPLOY_PATH || '/home/exedev/news-aggregator' }}
       PM2_APP_NAME: ${{ vars.GECKO_WATER_PM2_APP_NAME || 'news-aggregator' }}
       PORT: ${{ vars.GECKO_WATER_PORT || '3001' }}
 
