@@ -1,0 +1,67 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to gecko-water
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_HOST: ${{ secrets.GECKO_WATER_HOST }}
+      DEPLOY_USER: ${{ secrets.GECKO_WATER_USER }}
+      DEPLOY_PATH: ${{ vars.GECKO_WATER_DEPLOY_PATH || '/home/exedev/.openclaw/workspace/news-aggregator' }}
+      PM2_APP_NAME: ${{ vars.GECKO_WATER_PM2_APP_NAME || 'news-aggregator' }}
+      PORT: ${{ vars.GECKO_WATER_PORT || '3001' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Validate build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.GECKO_WATER_DEPLOY_KEY }}
+        run: |
+          test -n "$DEPLOY_HOST"
+          test -n "$DEPLOY_USER"
+          test -n "$DEPLOY_PATH"
+          test -n "$SSH_PRIVATE_KEY"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Sync files to gecko-water
+        run: |
+          rsync -az --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.env' \
+            --exclude='.env.*' \
+            --exclude='.next/' \
+            --exclude='node_modules/' \
+            --exclude='drizzle/' \
+            ./ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+
+      - name: Build and reload PM2 on gecko-water
+        run: |
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd '$DEPLOY_PATH' && PM2_APP_NAME='$PM2_APP_NAME' PORT='$PORT' bash scripts/remote-deploy.sh"

@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_DIR="${APP_DIR:-$(pwd)}"
+PM2_APP_NAME="${PM2_APP_NAME:-news-aggregator}"
+PORT="${PORT:-3001}"
+
+cd "$APP_DIR"
+
+if [ ! -f ".env" ]; then
+  echo "Missing .env in $APP_DIR; refusing to deploy without runtime configuration." >&2
+  exit 1
+fi
+
+npm ci
+
+if [ -d drizzle ] && find drizzle -maxdepth 1 -type f -name '*.sql' -print -quit 2>/dev/null | grep -q .; then
+  npm run db:migrate
+else
+  echo "No drizzle SQL migrations found; skipping database migration."
+fi
+
+npm run build
+
+if ! command -v pm2 >/dev/null 2>&1; then
+  echo "pm2 is not installed or not on PATH for $(whoami)." >&2
+  exit 1
+fi
+
+PM2_APP_NAME="$PM2_APP_NAME" PORT="$PORT" pm2 startOrReload ecosystem.config.cjs --update-env
+pm2 save
+pm2 status "$PM2_APP_NAME"
