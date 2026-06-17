@@ -68,7 +68,7 @@ Open:
 npm run job:refresh
 ```
 
-### Dispatcher + worker (recommended)
+### Dispatcher + worker
 
 ```bash
 npm run job:dispatch
@@ -77,11 +77,26 @@ npm run job:worker
 
 Worker concurrency is controlled by `WORKER_CONCURRENCY` (default 2).
 
-### Scheduler (legacy loop)
+### Scheduler
 
 ```bash
 npm run job:scheduler
 ```
+
+The scheduler polls for due sources every `SCHEDULER_TICK_SECONDS` (default 60) and uses `REFRESH_MINUTES` (default 30) for sources without their own refresh interval. It also drains up to `SCHEDULER_MAX_JOBS` jobs each tick.
+
+### Production with PM2
+
+```bash
+PM2_APP_NAME=news-aggregator PORT=3001 pm2 start ecosystem.config.cjs --update-env
+pm2 save
+```
+
+The ecosystem starts three processes:
+
+- `news-aggregator` - Next.js web app
+- `news-aggregator-scheduler` - dispatches due source refreshes on the auto-refresh schedule
+- `news-aggregator-worker` - drains queued scrape and score jobs continuously
 
 ## Key API routes
 

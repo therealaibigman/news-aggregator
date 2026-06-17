@@ -54,8 +54,9 @@ export default function SettingsPage() {
         <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="text-sm font-semibold text-slate-950">Scheduler</div>
           <div className="mt-1 text-sm leading-6 text-slate-600">
-            Run <code className="rounded bg-slate-100 px-1">npm run job:scheduler</code>. It uses{' '}
-            <code className="rounded bg-slate-100 px-1">REFRESH_MINUTES</code> from <code className="rounded bg-slate-100 px-1">.env</code>.
+            Run <code className="rounded bg-slate-100 px-1">npm run job:scheduler</code>. It polls every{' '}
+            <code className="rounded bg-slate-100 px-1">SCHEDULER_TICK_SECONDS</code> and uses{' '}
+            <code className="rounded bg-slate-100 px-1">REFRESH_MINUTES</code> for sources without their own interval.
           </div>
         </section>
       </div>
