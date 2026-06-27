@@ -70,6 +70,16 @@ export function JobsClient() {
     await load();
   }
 
+  async function clearQueued() {
+    if (!window.confirm('Clear all queued jobs? Running jobs will be left alone.')) return;
+
+    setMsg(null);
+    const res = await fetch('/api/jobs/clear-queued', { method: 'POST' });
+    const data = (await res.json()) as { deleted?: number };
+    setMsg(`Cleared queued jobs${typeof data.deleted === 'number' ? ` (${data.deleted})` : ''}`);
+    await load();
+  }
+
   async function retry(jobId: string) {
     setMsg(null);
     await fetch('/api/jobs/retry', {
@@ -93,6 +103,9 @@ export function JobsClient() {
         </button>
         <button className="rounded-md border border-red-200 bg-red-50 px-3 py-2 font-medium text-red-700 hover:bg-red-100" onClick={clear}>
           Clear done+error
+        </button>
+        <button className="rounded-md border border-red-200 bg-red-50 px-3 py-2 font-medium text-red-700 hover:bg-red-100" onClick={clearQueued}>
+          Clear queued
         </button>
         <button className="rounded-md border border-slate-300 px-3 py-2 font-medium text-slate-700 hover:bg-slate-50" onClick={clearDone}>
           Clear done
