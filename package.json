@@ -13,7 +13,9 @@
     "job:scheduler": "node -r dotenv/config ./node_modules/.bin/tsx src/server/scripts/scheduler.ts",
     "job:dispatch": "node -r dotenv/config ./node_modules/.bin/tsx src/server/scripts/dispatch.ts",
     "job:worker": "node -r dotenv/config ./node_modules/.bin/tsx src/server/scripts/worker.ts",
-    "job:prefs": "node -r dotenv/config ./node_modules/.bin/tsx src/server/scripts/prefs.ts"
+    "job:prefs": "node -r dotenv/config ./node_modules/.bin/tsx src/server/scripts/prefs.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@extractus/feed-extractor": "^7.1.7",
@@ -39,6 +41,7 @@
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
+    "vitest": "^4.1.9",
     "zod": "^4.3.6"
   }
 }
