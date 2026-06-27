@@ -48,6 +48,8 @@ export function SettingsForm() {
 
   if (!settings) return <div className="text-sm text-slate-500">Loading...</div>;
 
+  const riskyScoringModel = /(:free|omni|vision|reasoning)/i.test(settings.llmModel);
+
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <div className="flex flex-col gap-1">
@@ -71,6 +73,11 @@ export function SettingsForm() {
           placeholder="openai/gpt-4o-mini"
         />
         <div className="text-xs text-slate-500">Free-form model id supported by the provider.</div>
+        {riskyScoringModel ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs leading-5 text-amber-800">
+            This model may return empty or non-JSON scoring responses. Prefer a JSON-capable text/chat model.
+          </div>
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-1">

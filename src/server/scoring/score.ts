@@ -3,6 +3,7 @@ import * as schema from '../db/schema';
 import { desc, eq, isNull, sql } from 'drizzle-orm';
 import { llmJson } from '../llm/client';
 import type { LlmProvider } from '../llm/client';
+import { createLogger } from '../logging/logger';
 import { z } from 'zod';
 
 type ScoreOut = {
@@ -16,6 +17,12 @@ const scoreSchema = z.object({
   reason: z.coerce.string().max(500).default(''),
   labels: z.array(z.coerce.string().max(40)).max(6).default([]),
 });
+
+const logger = createLogger('scoring');
+
+function uniqueModels(models: Array<string | null | undefined>) {
+  return [...new Set(models.map((model) => model?.trim()).filter((model): model is string => Boolean(model)))];
+}
 
 async function getSettings() {
   const row = await db.select().from(schema.appSettings).limit(1);
@@ -36,6 +43,11 @@ async function getPrefs() {
 export async function scoreLatestUnscored(limit = 25) {
   const settings = await getSettings();
   const prefs = await getPrefs();
+  const scoringModels = uniqueModels([
+    settings.llmModel,
+    process.env.SCORING_FALLBACK_MODEL,
+    process.env.LLM_FALLBACK_MODEL,
+  ]);
 
   const rows = await db
     .select({
@@ -68,15 +80,36 @@ export async function scoreLatestUnscored(limit = 25) {
       .filter(Boolean)
       .join('\n');
 
-    const out = await llmJson<ScoreOut>(
-      {
-        provider: (settings.llmProvider as LlmProvider) ?? 'openrouter',
-        model: settings.llmModel,
-        apiKey: settings.useEnvKey ? process.env.LLM_API_KEY : process.env.LLM_API_KEY,
-      },
-      prompt,
-      (value) => scoreSchema.parse(value) as ScoreOut,
-    );
+    let out: ScoreOut | null = null;
+    let modelUsed: string | null = null;
+    let lastError: unknown = null;
+
+    for (const model of scoringModels) {
+      try {
+        out = await llmJson<ScoreOut>(
+          {
+            provider: (settings.llmProvider as LlmProvider) ?? 'openrouter',
+            model,
+            apiKey: settings.useEnvKey ? process.env.LLM_API_KEY : process.env.LLM_API_KEY,
+          },
+          prompt,
+          (value) => scoreSchema.parse(value) as ScoreOut,
+        );
+        modelUsed = model;
+        break;
+      } catch (e) {
+        lastError = e;
+        logger.warn('score_model_failed', {
+          articleId: a.id,
+          provider: settings.llmProvider,
+          model,
+          willTryFallback: model !== scoringModels[scoringModels.length - 1],
+          error: e,
+        });
+      }
+    }
+
+    if (!out || !modelUsed) throw lastError ?? new Error('No scoring model configured');
 
     const score = Math.max(0, Math.min(100, Math.round(out.score ?? 50)));
     const reason = String(out.reason ?? '').slice(0, 500);
@@ -89,7 +122,7 @@ export async function scoreLatestUnscored(limit = 25) {
         interestReason: reason,
         interestLabels: labels,
         scoredAt: sql`now()`,
-        scoringModel: settings.llmModel,
+        scoringModel: modelUsed,
       })
       .where(eq(schema.articles.id, a.id));
   }

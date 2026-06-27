@@ -55,6 +55,8 @@ function findBalancedJson(text: string, open: '{' | '[', close: '}' | ']') {
 
 function parseJsonFromText(text: string) {
   const cleaned = stripCodeFence(text);
+  if (!cleaned) throw new Error('empty model response');
+
   const candidates = [cleaned, findBalancedJson(cleaned, '{', '}'), findBalancedJson(cleaned, '[', ']')].filter(
     (candidate): candidate is string => Boolean(candidate),
   );

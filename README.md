@@ -113,6 +113,9 @@ pm2 logs news-aggregator-worker --lines 500 --raw | jq -r 'select(.level=="error
 pm2 logs news-aggregator-worker --lines 500 --raw | jq -r 'select(.component=="llm.client")'
 ```
 
+For scoring, use a text/chat model that reliably returns JSON. If the configured model is flaky, set
+`SCORING_FALLBACK_MODEL` in `.env`; score jobs will try it after the primary model fails.
+
 ## Key API routes
 
 - `GET /api/sources`, `POST /api/sources`
