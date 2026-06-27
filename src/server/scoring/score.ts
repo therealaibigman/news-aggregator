@@ -3,12 +3,19 @@ import * as schema from '../db/schema';
 import { desc, eq, isNull, sql } from 'drizzle-orm';
 import { llmJson } from '../llm/client';
 import type { LlmProvider } from '../llm/client';
+import { z } from 'zod';
 
 type ScoreOut = {
   score: number; // 0-100
   reason: string; // short
   labels: string[]; // short tags
 };
+
+const scoreSchema = z.object({
+  score: z.coerce.number().min(0).max(100).default(50),
+  reason: z.coerce.string().max(500).default(''),
+  labels: z.array(z.coerce.string().max(40)).max(6).default([]),
+});
 
 async function getSettings() {
   const row = await db.select().from(schema.appSettings).limit(1);
@@ -56,6 +63,7 @@ export async function scoreLatestUnscored(limit = 25) {
       `url: ${a.url}`,
       '',
       'Task: Decide how interested the user will be. Be consistent with dislikes. If unsure, score ~50.',
+      'Return exactly one JSON object with keys: score, reason, labels.',
     ]
       .filter(Boolean)
       .join('\n');
@@ -67,6 +75,7 @@ export async function scoreLatestUnscored(limit = 25) {
         apiKey: settings.useEnvKey ? process.env.LLM_API_KEY : process.env.LLM_API_KEY,
       },
       prompt,
+      (value) => scoreSchema.parse(value) as ScoreOut,
     );
 
     const score = Math.max(0, Math.min(100, Math.round(out.score ?? 50)));
