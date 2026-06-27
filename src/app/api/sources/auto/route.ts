@@ -3,6 +3,9 @@ import * as schema from '@/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { tryExtractFeed } from '@/server/sources/rss';
 import { generateRecipeForSource, upsertRecipe } from '@/server/sources/generator';
+import { createLogger } from '@/server/logging/logger';
+
+const logger = createLogger('sources');
 
 function getBaseUrl(input: string) {
   const u = new URL(input);
@@ -10,8 +13,10 @@ function getBaseUrl(input: string) {
 }
 
 export async function POST(req: Request) {
+  let submittedUrl: string | undefined;
   try {
     const body = (await req.json()) as { url: string; name?: string };
+    submittedUrl = body.url;
     const inputUrl = new URL(body.url).toString();
     const baseUrl = getBaseUrl(inputUrl);
     const host = new URL(baseUrl).host;
@@ -47,6 +52,11 @@ export async function POST(req: Request) {
     return Response.json({ ok: true, source: sourceRow, kind: 'recipe', approved: false, recipe });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'failed to add source';
+    logger.error('source_auto_add_failed', {
+      url: submittedUrl,
+      error: message,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return Response.json({ ok: false, error: message }, { status: 400 });
   }
 }

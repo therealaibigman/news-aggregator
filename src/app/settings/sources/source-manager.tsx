@@ -13,6 +13,16 @@ type SettingsSource = {
   recipe: { kind: string; approved: boolean } | null;
 };
 
+async function readJsonResponse(res: Response) {
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as { ok?: boolean; error?: string; kind?: string; approved?: boolean };
+  } catch {
+    return { ok: false, error: text.slice(0, 300) };
+  }
+}
+
 export function SourceManager() {
   const [url, setUrl] = useState('');
   const [name, setName] = useState('');
@@ -43,12 +53,15 @@ export function SourceManager() {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ url, name: name || undefined }),
     });
-    const data = await res.json();
+    const data = await readJsonResponse(res);
     setPreview(data);
-    setMsg(data.ok ? `Added. Kind=${data.kind}. Approved=${String(data.approved ?? true)}` : `Error: ${data.error}`);
-    startTransition(() => {
-      window.location.reload();
-    });
+    const error = data?.error ?? `request failed with status ${res.status}`;
+    setMsg(data?.ok && res.ok ? `Added. Kind=${data.kind}. Approved=${String(data.approved ?? true)}` : `Error: ${error}`);
+    if (data?.ok && res.ok) {
+      startTransition(() => {
+        window.location.reload();
+      });
+    }
   }
 
   async function testRecipe(sourceId: string) {
