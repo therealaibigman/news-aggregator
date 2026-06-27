@@ -98,6 +98,16 @@ The ecosystem starts three processes:
 - `news-aggregator-scheduler` - dispatches due source refreshes on the auto-refresh schedule
 - `news-aggregator-worker` - drains queued scrape and score jobs continuously
 
+For free LLM models, keep the worker single-lane:
+
+```bash
+WORKER_CONCURRENCY=1
+WORKER_BATCH_SIZE=1
+SCHEDULER_DRAIN_JOBS=false
+```
+
+LLM rate limits use exponential job retry backoff. A `Retry-After` header is honoured when providers send one.
+
 PM2 logs use JSON lines for scheduler, worker, job, and LLM events:
 
 ```bash

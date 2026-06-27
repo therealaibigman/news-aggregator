@@ -2,6 +2,7 @@ import { db } from '../db';
 import * as schema from '../db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { refreshSourceById } from '../jobs/refresh';
+import { LlmRateLimitError } from '../llm/client';
 import { createLogger } from '../logging/logger';
 import { scoreLatestUnscored } from '../scoring/score';
 import { ensureJobLogsTable } from './logs';
@@ -27,6 +28,15 @@ async function writeJobLog(jobId: string, message: string, level: 'info' | 'erro
   } catch (e) {
     logger.error('job_log_write_failed', { jobId, message, level, error: e });
   }
+}
+
+function retryDelaySeconds(attempt: number, error: unknown) {
+  const cappedAttempt = Math.max(1, Math.min(attempt, 8));
+  const baseSeconds = error instanceof LlmRateLimitError ? 60 : 10;
+  const capSeconds = error instanceof LlmRateLimitError ? 60 * 60 : 30 * 60;
+  const retryAfter = error instanceof LlmRateLimitError ? error.retryAfterSeconds : undefined;
+  const exponential = Math.min(capSeconds, baseSeconds * 2 ** (cappedAttempt - 1));
+  return Math.max(retryAfter ?? 0, exponential);
 }
 
 export async function enqueueJob(payload: JobPayload, runAt: Date = new Date()) {
@@ -133,10 +143,9 @@ export async function runWorkerOnce(maxJobs = 10) {
       await writeJobLog(row.id, 'Marked job done');
       logger.info('job_done', { jobId: row.id, type: payload.type, attempt: row.attempts });
     } catch (e: unknown) {
-      // Job retry backoff: 10s, 30s, 2m, 10m, 1h
       const msg = String((e as { message?: string } | null)?.message ?? e);
       const att = Number(row.attempts ?? 1);
-      const secs = att === 1 ? 10 : att === 2 ? 30 : att === 3 ? 120 : att === 4 ? 600 : 3600;
+      const secs = retryDelaySeconds(att, e);
       await writeJobLog(row.id, `${msg}; retrying in ${secs}s`, 'error');
       logger.error('job_failed_retry_scheduled', {
         jobId: row.id,

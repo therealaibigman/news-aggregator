@@ -10,7 +10,50 @@ export type LlmConfig = {
   model: string;
 };
 
+export class LlmRateLimitError extends Error {
+  retryAfterSeconds?: number;
+
+  constructor(message: string, retryAfterSeconds?: number) {
+    super(message);
+    this.name = 'LlmRateLimitError';
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
 const logger = createLogger('llm.client');
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+}
+
+function headerValue(headers: unknown, key: string) {
+  const get = asRecord(headers)?.get;
+  if (typeof get === 'function') return String(get.call(headers, key) ?? '');
+  const value = asRecord(headers)?.[key] ?? asRecord(headers)?.[key.toLowerCase()];
+  return typeof value === 'string' ? value : '';
+}
+
+function parseRetryAfter(value: string) {
+  if (!value) return undefined;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds)) return Math.max(1, Math.ceil(seconds));
+
+  const dateMs = Date.parse(value);
+  if (Number.isFinite(dateMs)) return Math.max(1, Math.ceil((dateMs - Date.now()) / 1000));
+
+  return undefined;
+}
+
+function toRateLimitError(e: unknown) {
+  const record = asRecord(e);
+  const status = record?.status ?? asRecord(record?.response)?.status;
+  if (status !== 429) return null;
+
+  const headers = record?.headers ?? asRecord(record?.response)?.headers;
+  const retryAfter = parseRetryAfter(headerValue(headers, 'retry-after'));
+  const message = e instanceof Error ? e.message : 'LLM rate limit exceeded';
+  return new LlmRateLimitError(message, retryAfter);
+}
 
 function stripCodeFence(text: string) {
   const trimmed = text.trim();
@@ -101,6 +144,35 @@ export async function llmJson<T>(cfg: LlmConfig, prompt: string, validate?: (val
   let lastError = '';
   let useJsonMode = true;
 
+  async function createCompletion(messages: ChatCompletionMessageParam[], jsonMode: boolean) {
+    try {
+      return jsonMode
+        ? await client.chat.completions.create({
+            model: cfg.model,
+            messages,
+            temperature: 0,
+            response_format: { type: 'json_object' },
+          })
+        : await client.chat.completions.create({
+            model: cfg.model,
+            messages,
+            temperature: 0,
+          });
+    } catch (e) {
+      const rateLimit = toRateLimitError(e);
+      if (rateLimit) {
+        logger.warn('rate_limited', {
+          provider: cfg.provider,
+          model: cfg.model,
+          retryAfterSeconds: rateLimit.retryAfterSeconds ?? null,
+          error: e,
+        });
+        throw rateLimit;
+      }
+      throw e;
+    }
+  }
+
   for (let attempt = 0; attempt < 3; attempt++) {
     const messages: ChatCompletionMessageParam[] =
       attempt === 0
@@ -114,21 +186,11 @@ export async function llmJson<T>(cfg: LlmConfig, prompt: string, validate?: (val
           ];
 
     try {
-      const resp = useJsonMode
-        ? await client.chat.completions.create({
-            model: cfg.model,
-            messages,
-            temperature: 0,
-            response_format: { type: 'json_object' },
-          })
-        : await client.chat.completions.create({
-            model: cfg.model,
-            messages,
-            temperature: 0,
-          });
+      const resp = await createCompletion(messages, useJsonMode);
 
       lastText = resp.choices[0]?.message?.content ?? '';
     } catch (e) {
+      if (e instanceof LlmRateLimitError) throw e;
       if (!useJsonMode) throw e;
       useJsonMode = false;
       logger.warn('json_mode_fallback', {
@@ -138,11 +200,7 @@ export async function llmJson<T>(cfg: LlmConfig, prompt: string, validate?: (val
         error: e,
       });
 
-      const resp = await client.chat.completions.create({
-        model: cfg.model,
-        messages,
-        temperature: 0,
-      });
+      const resp = await createCompletion(messages, false);
 
       lastText = resp.choices[0]?.message?.content ?? '';
     }

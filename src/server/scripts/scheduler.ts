@@ -7,7 +7,8 @@ import { createLogger } from '../logging/logger';
 
 const DEFAULT_REFRESH_MINUTES = Number(process.env.REFRESH_MINUTES ?? 30);
 const SCHEDULER_TICK_SECONDS = Math.max(10, Number(process.env.SCHEDULER_TICK_SECONDS ?? 60));
-const SCHEDULER_MAX_JOBS = Math.max(1, Number(process.env.SCHEDULER_MAX_JOBS ?? 10));
+const SCHEDULER_DRAIN_JOBS = process.env.SCHEDULER_DRAIN_JOBS === 'true';
+const SCHEDULER_MAX_JOBS = Math.max(1, Number(process.env.SCHEDULER_MAX_JOBS ?? 1));
 const logger = createLogger('scripts.scheduler');
 
 function sleep(ms: number) {
@@ -24,8 +25,7 @@ async function ensureDefaults() {
 async function tickOnce() {
   const dispatched = await dispatchDueScrapes(DEFAULT_REFRESH_MINUTES);
 
-  // Drain a bit of work each tick.
-  const worker = await runWorkerOnce(SCHEDULER_MAX_JOBS);
+  const worker = SCHEDULER_DRAIN_JOBS ? await runWorkerOnce(SCHEDULER_MAX_JOBS) : { processed: 0 };
   return { ...dispatched, processed: worker.processed };
 }
 
@@ -34,6 +34,7 @@ async function main() {
   logger.info('scheduler_started', {
     defaultRefreshMinutes: DEFAULT_REFRESH_MINUTES,
     tickSeconds: SCHEDULER_TICK_SECONDS,
+    drainJobs: SCHEDULER_DRAIN_JOBS,
     maxJobs: SCHEDULER_MAX_JOBS,
   });
 
