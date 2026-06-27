@@ -1,6 +1,6 @@
 import { db } from '@/server/db';
 import * as schema from '@/server/db/schema';
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, or, sql } from 'drizzle-orm';
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   const hideHidden = url.searchParams.get('hideHidden') !== '0';
 
   const where = and(
-    hideHidden ? eq(schema.articlesHidden.hidden, false) : undefined,
+    hideHidden ? or(isNull(schema.articlesHidden.hidden), eq(schema.articlesHidden.hidden, false)) : undefined,
     onlyUnread ? isNull(schema.articlesRead.readAt) : undefined,
     onlySaved ? eq(schema.articlesSaved.saved, true) : undefined,
   );

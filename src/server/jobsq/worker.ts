@@ -131,9 +131,16 @@ export async function runWorkerOnce(maxJobs = 10) {
       } else if (payload.type === 'score') {
         await writeJobLog(row.id, `Starting score job with limit ${payload.limit ?? 25}`);
         logger.info('score_started', { jobId: row.id, limit: payload.limit ?? 25, attempt: row.attempts });
-        await scoreLatestUnscored(payload.limit ?? 25);
-        await writeJobLog(row.id, 'Score job finished successfully');
-        logger.info('score_finished', { jobId: row.id, limit: payload.limit ?? 25 });
+        const result = await scoreLatestUnscored(payload.limit ?? 25, {
+          onArticleScored: async (event) => {
+            await writeJobLog(
+              row.id,
+              `Scored ${event.score}: ${event.title} (${event.model}) - ${event.reason}`,
+            );
+          },
+        });
+        await writeJobLog(row.id, `Score job finished successfully; scored ${result.scored} article(s)`);
+        logger.info('score_finished', { jobId: row.id, limit: payload.limit ?? 25, scored: result.scored });
       }
 
       await db

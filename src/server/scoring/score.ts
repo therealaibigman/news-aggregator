@@ -12,6 +12,20 @@ type ScoreOut = {
   labels: string[]; // short tags
 };
 
+type ScoreEvent = {
+  articleId: string;
+  title: string;
+  url: string;
+  score: number;
+  reason: string;
+  labels: string[];
+  model: string;
+};
+
+type ScoreOptions = {
+  onArticleScored?: (event: ScoreEvent) => Promise<void> | void;
+};
+
 const scoreSchema = z.object({
   score: z.coerce.number().min(0).max(100).default(50),
   reason: z.coerce.string().max(500).default(''),
@@ -40,7 +54,7 @@ async function getPrefs() {
   return row[0]?.content ?? '';
 }
 
-export async function scoreLatestUnscored(limit = 25) {
+export async function scoreLatestUnscored(limit = 25, options: ScoreOptions = {}) {
   const settings = await getSettings();
   const prefs = await getPrefs();
   const scoringModels = uniqueModels([
@@ -113,7 +127,8 @@ export async function scoreLatestUnscored(limit = 25) {
 
     const score = Math.max(0, Math.min(100, Math.round(out.score ?? 50)));
     const reason = String(out.reason ?? '').slice(0, 500);
-    const labels = JSON.stringify((out.labels ?? []).slice(0, 6));
+    const labelsArray = (out.labels ?? []).slice(0, 6);
+    const labels = JSON.stringify(labelsArray);
 
     await db
       .update(schema.articles)
@@ -125,6 +140,23 @@ export async function scoreLatestUnscored(limit = 25) {
         scoringModel: modelUsed,
       })
       .where(eq(schema.articles.id, a.id));
+
+    logger.info('article_scored', {
+      articleId: a.id,
+      title: a.title,
+      score,
+      labels: labelsArray,
+      model: modelUsed,
+    });
+    await options.onArticleScored?.({
+      articleId: a.id,
+      title: a.title,
+      url: a.url,
+      score,
+      reason,
+      labels: labelsArray,
+      model: modelUsed,
+    });
   }
 
   return { scored: rows.length };
