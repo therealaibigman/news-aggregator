@@ -10,30 +10,43 @@ function getBaseUrl(input: string) {
 }
 
 export async function POST(req: Request) {
-  const body = (await req.json()) as { url: string; name?: string };
-  const baseUrl = getBaseUrl(body.url);
-  const host = new URL(baseUrl).host;
+  try {
+    const body = (await req.json()) as { url: string; name?: string };
+    const inputUrl = new URL(body.url).toString();
+    const baseUrl = getBaseUrl(inputUrl);
+    const host = new URL(baseUrl).host;
 
-  const [source] = await db
-    .insert(schema.sources)
-    .values({ name: body.name ?? host, baseUrl, enabled: true })
-    .onConflictDoNothing()
-    .returning();
+    const [source] = await db
+      .insert(schema.sources)
+      .values({ name: body.name ?? host, baseUrl, enabled: true })
+      .onConflictDoNothing()
+      .returning();
 
-  const sourceRow =
-    source ?? (await db.select().from(schema.sources).where(eq(schema.sources.baseUrl, baseUrl)).limit(1))[0];
-  if (!sourceRow) return Response.json({ ok: false, error: 'failed to upsert source' }, { status: 500 });
+    const sourceRow =
+      source ?? (await db.select().from(schema.sources).where(eq(schema.sources.baseUrl, baseUrl)).limit(1))[0];
+    if (!sourceRow) return Response.json({ ok: false, error: 'failed to upsert source' }, { status: 500 });
 
-  // 1) RSS autodetect
-  const feed = await tryExtractFeed(baseUrl);
-  if (feed) {
-    await upsertRecipe(sourceRow.id, 'rss', host, JSON.stringify({ feedUrl: feed.feedUrl }), true);
-    return Response.json({ ok: true, source: sourceRow, kind: 'rss', feedUrl: feed.feedUrl, preview: feed.items.slice(0, 10) });
+    // 1) RSS autodetect. Try the submitted URL first so direct feed URLs with
+    // nonstandard paths are not collapsed to the site homepage.
+    const feed = (await tryExtractFeed(inputUrl)) ?? (inputUrl === baseUrl ? null : await tryExtractFeed(baseUrl));
+    if (feed) {
+      await upsertRecipe(sourceRow.id, 'rss', host, JSON.stringify({ feedUrl: feed.feedUrl }), true);
+      return Response.json({
+        ok: true,
+        source: sourceRow,
+        kind: 'rss',
+        feedUrl: feed.feedUrl,
+        preview: feed.items.slice(0, 10),
+      });
+    }
+
+    // 2) LLM recipe generation (not approved by default)
+    const recipe = await generateRecipeForSource(baseUrl);
+    await upsertRecipe(sourceRow.id, 'recipe', host, JSON.stringify(recipe), false);
+
+    return Response.json({ ok: true, source: sourceRow, kind: 'recipe', approved: false, recipe });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'failed to add source';
+    return Response.json({ ok: false, error: message }, { status: 400 });
   }
-
-  // 2) LLM recipe generation (not approved by default)
-  const recipe = await generateRecipeForSource(baseUrl);
-  await upsertRecipe(sourceRow.id, 'recipe', host, JSON.stringify(recipe), false);
-
-  return Response.json({ ok: true, source: sourceRow, kind: 'recipe', approved: false, recipe });
 }
