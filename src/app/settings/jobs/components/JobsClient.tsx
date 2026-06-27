@@ -14,8 +14,18 @@ type Job = {
   updatedAt: string;
 };
 
+type JobLog = {
+  id: string;
+  jobId: string;
+  level: string;
+  message: string;
+  createdAt: string;
+};
+
 export function JobsClient() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [logs, setLogs] = useState<JobLog[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -24,10 +34,27 @@ export function JobsClient() {
     setJobs(data);
   }, []);
 
+  const loadLogs = useCallback(async (jobId: string) => {
+    const res = await fetch(`/api/jobs/logs?jobId=${encodeURIComponent(jobId)}`, { cache: 'no-store' });
+    const data = (await res.json()) as JobLog[];
+    setLogs(data);
+  }, []);
+
   useEffect(() => {
     const t = setTimeout(() => void load(), 0);
     return () => clearTimeout(t);
   }, [load]);
+
+  useEffect(() => {
+    if (!selectedJobId) return;
+
+    const t = window.setTimeout(() => void loadLogs(selectedJobId), 0);
+    const interval = window.setInterval(() => void loadLogs(selectedJobId), 3000);
+    return () => {
+      window.clearTimeout(t);
+      window.clearInterval(interval);
+    };
+  }, [loadLogs, selectedJobId]);
 
   async function runWorker() {
     setMsg(null);
@@ -89,6 +116,13 @@ export function JobsClient() {
     });
     setMsg('Retried');
     await load();
+    await loadLogs(jobId);
+  }
+
+  function selectJob(jobId: string) {
+    const next = selectedJobId === jobId ? null : jobId;
+    setSelectedJobId(next);
+    if (!next) setLogs([]);
   }
 
   return (
@@ -122,11 +156,26 @@ export function JobsClient() {
 
       <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-4 py-3">
-          <h2 className="text-sm font-semibold text-slate-950">Queued jobs</h2>
-          <p className="text-xs text-slate-500">{jobs.length} rows loaded</p>
+          <h2 className="text-sm font-semibold text-slate-950">Jobs</h2>
+          <p className="text-xs text-slate-500">{jobs.length} rows loaded. Click a job to view its logs.</p>
         </div>
         {jobs.map((j) => (
-          <div key={j.id} className="border-b border-slate-100 p-4 text-xs last:border-b-0">
+          <div
+            key={j.id}
+            className={[
+              'cursor-pointer border-b border-slate-100 p-4 text-xs last:border-b-0 hover:bg-slate-50',
+              selectedJobId === j.id ? 'bg-slate-50' : '',
+            ].join(' ')}
+            role="button"
+            tabIndex={0}
+            onClick={() => selectJob(j.id)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                selectJob(j.id);
+              }
+            }}
+          >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="font-semibold text-slate-950">
                 {j.type} · attempts {j.attempts}
@@ -149,11 +198,37 @@ export function JobsClient() {
             <div className="mt-1 text-slate-500">runAt: {new Date(j.runAt).toLocaleString()}</div>
             {j.lastError ? <div className="mt-2 rounded-md bg-red-50 p-2 text-red-700">error: {j.lastError}</div> : null}
             <div className="mt-2 flex items-center gap-2">
-              <button className="rounded-md border border-slate-300 px-2 py-1 font-medium text-slate-700 hover:bg-slate-50" onClick={() => retry(j.id)}>
+              <button
+                className="rounded-md border border-slate-300 px-2 py-1 font-medium text-slate-700 hover:bg-slate-50"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void retry(j.id);
+                }}
+              >
                 Retry now
               </button>
             </div>
-            <details className="mt-2">
+            {selectedJobId === j.id ? (
+              <div className="mt-3 rounded-md border border-slate-200 bg-white">
+                <div className="border-b border-slate-200 px-3 py-2 font-semibold text-slate-950">Logs</div>
+                {logs.length > 0 ? (
+                  <div className="max-h-72 divide-y divide-slate-100 overflow-auto">
+                    {logs.map((log) => (
+                      <div key={log.id} className="grid gap-1 px-3 py-2 sm:grid-cols-[10rem_4rem_1fr]">
+                        <span className="text-slate-500">{new Date(log.createdAt).toLocaleString()}</span>
+                        <span className={log.level === 'error' ? 'font-semibold text-red-700' : 'font-semibold text-slate-600'}>
+                          {log.level}
+                        </span>
+                        <span className="text-slate-800">{log.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-3 py-3 text-slate-500">No logs for this job yet.</div>
+                )}
+              </div>
+            ) : null}
+            <details className="mt-2" onClick={(event) => event.stopPropagation()}>
               <summary className="cursor-pointer font-medium text-slate-700">payload</summary>
               <pre className="mt-2 max-h-48 overflow-auto rounded-md bg-slate-950 p-3 text-slate-100">{j.payload}</pre>
             </details>

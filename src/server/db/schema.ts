@@ -5,6 +5,7 @@ import {
   uuid,
   integer,
   boolean,
+  index,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
@@ -139,6 +140,22 @@ export const jobs = pgTable('jobs', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const jobLogs = pgTable(
+  'job_logs',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    jobId: uuid('job_id')
+      .notNull()
+      .references(() => jobs.id, { onDelete: 'cascade' }),
+    level: text('level').notNull().default('info'), // info | error
+    message: text('message').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    jobIdIdx: index('job_logs_job_id_idx').on(t.jobId),
+  }),
+);
 
 export const sourceRecipes = pgTable(
   'source_recipes',
