@@ -3,10 +3,12 @@ import * as schema from '../db/schema';
 import { db } from '../db';
 import { runWorkerOnce } from '../jobsq/worker';
 import { dispatchDueScrapes } from '../jobsq/dispatcher';
+import { createLogger } from '../logging/logger';
 
 const DEFAULT_REFRESH_MINUTES = Number(process.env.REFRESH_MINUTES ?? 30);
 const SCHEDULER_TICK_SECONDS = Math.max(10, Number(process.env.SCHEDULER_TICK_SECONDS ?? 60));
 const SCHEDULER_MAX_JOBS = Math.max(1, Number(process.env.SCHEDULER_MAX_JOBS ?? 10));
+const logger = createLogger('scripts.scheduler');
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -20,26 +22,29 @@ async function ensureDefaults() {
 }
 
 async function tickOnce() {
-  await dispatchDueScrapes(DEFAULT_REFRESH_MINUTES);
+  const dispatched = await dispatchDueScrapes(DEFAULT_REFRESH_MINUTES);
 
   // Drain a bit of work each tick.
-  await runWorkerOnce(SCHEDULER_MAX_JOBS);
+  const worker = await runWorkerOnce(SCHEDULER_MAX_JOBS);
+  return { ...dispatched, processed: worker.processed };
 }
 
 async function main() {
   await ensureDefaults();
-  console.log(
-    `scheduler: starting (default refresh ${DEFAULT_REFRESH_MINUTES}m, tick ${SCHEDULER_TICK_SECONDS}s)`,
-  );
+  logger.info('scheduler_started', {
+    defaultRefreshMinutes: DEFAULT_REFRESH_MINUTES,
+    tickSeconds: SCHEDULER_TICK_SECONDS,
+    maxJobs: SCHEDULER_MAX_JOBS,
+  });
 
   // Poll frequently so per-source refreshMinutes and retry runAt values are honoured.
   while (true) {
     const start = Date.now();
     try {
-      await tickOnce();
-      console.log(`scheduler: tick ok (${new Date().toISOString()})`);
+      const result = await tickOnce();
+      logger.info('scheduler_tick_ok', { elapsedMs: Date.now() - start, ...result });
     } catch (e) {
-      console.error('scheduler: tick failed', e);
+      logger.error('scheduler_tick_failed', { elapsedMs: Date.now() - start, error: e });
     }
 
     const elapsed = Date.now() - start;
@@ -49,6 +54,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err);
+  logger.error('scheduler_fatal', { error: err });
   process.exit(1);
 });

@@ -1,7 +1,10 @@
 import { db } from '../db';
 import * as schema from '../db/schema';
 import { eq, sql } from 'drizzle-orm';
+import { createLogger } from '../logging/logger';
 import { enqueueJob } from './worker';
+
+const logger = createLogger('jobs.dispatcher');
 
 export async function dispatchDueScrapes(defaultRefreshMinutes: number) {
   const now = new Date();
@@ -38,6 +41,7 @@ export async function dispatchDueScrapes(defaultRefreshMinutes: number) {
 
   // score job: cheap to enqueue, worker will do limited batch
   await enqueueJob({ type: 'score', limit: 25 });
+  logger.info('dispatch_completed', { sourcesChecked: sources.length, scrapeJobsEnqueued: enqueued, scoreJobEnqueued: true });
 
   return { enqueued };
 }

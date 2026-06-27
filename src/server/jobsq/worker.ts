@@ -2,6 +2,7 @@ import { db } from '../db';
 import * as schema from '../db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { refreshSourceById } from '../jobs/refresh';
+import { createLogger } from '../logging/logger';
 import { scoreLatestUnscored } from '../scoring/score';
 import { ensureJobLogsTable } from './logs';
 
@@ -17,12 +18,14 @@ type ClaimedJobRow = {
   attempts: number;
 };
 
+const logger = createLogger('jobs.worker');
+
 async function writeJobLog(jobId: string, message: string, level: 'info' | 'error' = 'info') {
   try {
     await ensureJobLogsTable();
     await db.insert(schema.jobLogs).values({ jobId, message, level });
   } catch (e) {
-    console.error('failed to write job log', e);
+    logger.error('job_log_write_failed', { jobId, message, level, error: e });
   }
 }
 
@@ -38,6 +41,7 @@ export async function enqueueJob(payload: JobPayload, runAt: Date = new Date()) 
 
   if (job?.id) {
     await writeJobLog(job.id, `Queued ${payload.type} job for ${runAt.toISOString()}`);
+    logger.info('job_queued', { jobId: job.id, type: payload.type, runAt: runAt.toISOString() });
   }
 }
 
@@ -68,10 +72,12 @@ export async function runWorkerOnce(maxJobs = 10) {
 
     const payload = JSON.parse(row.payload) as JobPayload;
     await writeJobLog(row.id, `Claimed by worker on attempt ${row.attempts}`);
+    logger.info('job_claimed', { jobId: row.id, type: payload.type, attempt: row.attempts });
 
     try {
       if (payload.type === 'scrape') {
         await writeJobLog(row.id, `Starting scrape for source ${payload.sourceId}`);
+        logger.info('scrape_started', { jobId: row.id, sourceId: payload.sourceId, attempt: row.attempts });
         const r = await refreshSourceById(payload.sourceId);
 
         if (r.ok) {
@@ -85,12 +91,14 @@ export async function runWorkerOnce(maxJobs = 10) {
             })
             .where(eq(schema.sources.id, payload.sourceId));
           await writeJobLog(row.id, 'Scrape finished successfully');
+          logger.info('scrape_finished', { jobId: row.id, sourceId: payload.sourceId });
         } else if (r.skipped) {
           await db
             .update(schema.sources)
             .set({ lastStatus: 'skipped', lastError: r.reason ?? null })
             .where(eq(schema.sources.id, payload.sourceId));
           await writeJobLog(row.id, `Scrape skipped: ${r.reason ?? 'no reason provided'}`);
+          logger.warn('scrape_skipped', { jobId: row.id, sourceId: payload.sourceId, reason: r.reason ?? null });
         } else {
           const src = await db
             .select({ failCount: schema.sources.failCount })
@@ -112,8 +120,10 @@ export async function runWorkerOnce(maxJobs = 10) {
         }
       } else if (payload.type === 'score') {
         await writeJobLog(row.id, `Starting score job with limit ${payload.limit ?? 25}`);
+        logger.info('score_started', { jobId: row.id, limit: payload.limit ?? 25, attempt: row.attempts });
         await scoreLatestUnscored(payload.limit ?? 25);
         await writeJobLog(row.id, 'Score job finished successfully');
+        logger.info('score_finished', { jobId: row.id, limit: payload.limit ?? 25 });
       }
 
       await db
@@ -121,12 +131,20 @@ export async function runWorkerOnce(maxJobs = 10) {
         .set({ status: 'done', lastError: null, updatedAt: sql`now()` })
         .where(eq(schema.jobs.id, row.id));
       await writeJobLog(row.id, 'Marked job done');
+      logger.info('job_done', { jobId: row.id, type: payload.type, attempt: row.attempts });
     } catch (e: unknown) {
       // Job retry backoff: 10s, 30s, 2m, 10m, 1h
       const msg = String((e as { message?: string } | null)?.message ?? e);
       const att = Number(row.attempts ?? 1);
       const secs = att === 1 ? 10 : att === 2 ? 30 : att === 3 ? 120 : att === 4 ? 600 : 3600;
       await writeJobLog(row.id, `${msg}; retrying in ${secs}s`, 'error');
+      logger.error('job_failed_retry_scheduled', {
+        jobId: row.id,
+        type: payload.type,
+        attempt: att,
+        retrySeconds: secs,
+        error: e,
+      });
       await db
         .update(schema.jobs)
         .set({

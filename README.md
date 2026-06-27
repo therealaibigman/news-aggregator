@@ -98,6 +98,21 @@ The ecosystem starts three processes:
 - `news-aggregator-scheduler` - dispatches due source refreshes on the auto-refresh schedule
 - `news-aggregator-worker` - drains queued scrape and score jobs continuously
 
+PM2 logs use JSON lines for scheduler, worker, job, and LLM events:
+
+```bash
+pm2 logs news-aggregator-worker --lines 200 --raw
+pm2 logs news-aggregator-scheduler --lines 200 --raw
+pm2 logs news-aggregator --lines 200 --raw
+```
+
+Useful filters:
+
+```bash
+pm2 logs news-aggregator-worker --lines 500 --raw | jq -r 'select(.level=="error" or .level=="warn")'
+pm2 logs news-aggregator-worker --lines 500 --raw | jq -r 'select(.component=="llm.client")'
+```
+
 ## Key API routes
 
 - `GET /api/sources`, `POST /api/sources`

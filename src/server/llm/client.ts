@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import { createLogger } from '../logging/logger';
 
 export type LlmProvider = 'openrouter' | 'openai';
 
@@ -8,6 +9,8 @@ export type LlmConfig = {
   apiKey?: string;
   model: string;
 };
+
+const logger = createLogger('llm.client');
 
 function stripCodeFence(text: string) {
   const trimmed = text.trim();
@@ -84,12 +87,12 @@ export async function llmJson<T>(cfg: LlmConfig, prompt: string, validate?: (val
   const client = new OpenAI({ apiKey, baseURL });
 
   const baseMessages: ChatCompletionMessageParam[] = [
-      {
-        role: 'system',
-        content:
-          'Return one valid JSON object only. No markdown, code fences, comments, arrays, or commentary. Must conform to the schema in the user message.',
-      },
-      { role: 'user', content: prompt },
+    {
+      role: 'system',
+      content:
+        'Return one valid JSON object only. No markdown, code fences, comments, arrays, or commentary. Must conform to the schema in the user message.',
+    },
+    { role: 'user', content: prompt },
   ];
 
   let lastText = '';
@@ -126,6 +129,12 @@ export async function llmJson<T>(cfg: LlmConfig, prompt: string, validate?: (val
     } catch (e) {
       if (!useJsonMode) throw e;
       useJsonMode = false;
+      logger.warn('json_mode_fallback', {
+        provider: cfg.provider,
+        model: cfg.model,
+        attempt: attempt + 1,
+        error: e,
+      });
 
       const resp = await client.chat.completions.create({
         model: cfg.model,
@@ -141,8 +150,21 @@ export async function llmJson<T>(cfg: LlmConfig, prompt: string, validate?: (val
       return validate ? validate(parsed) : (parsed as T);
     } catch (e) {
       lastError = validationMessage(e);
+      logger.warn('json_response_rejected', {
+        provider: cfg.provider,
+        model: cfg.model,
+        attempt: attempt + 1,
+        error: e,
+        responsePreview: lastText.slice(0, 500),
+      });
     }
   }
 
+  logger.error('json_response_failed', {
+    provider: cfg.provider,
+    model: cfg.model,
+    error: lastError,
+    responsePreview: lastText.slice(0, 500),
+  });
   throw new Error(`LLM did not return valid JSON: ${lastText.slice(0, 300)}`);
 }
