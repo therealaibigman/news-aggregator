@@ -16,6 +16,8 @@ fi
 if [ -s "$NVM_DIR/nvm.sh" ]; then
   # Non-interactive SSH sessions do not load nvm automatically.
   . "$NVM_DIR/nvm.sh"
+  nvm install --no-progress
+  nvm use
 fi
 
 if ! command -v npm >/dev/null 2>&1; then
