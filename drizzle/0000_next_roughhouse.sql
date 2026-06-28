@@ -1,4 +1,4 @@
-CREATE TABLE "app_settings" (
+CREATE TABLE IF NOT EXISTS "app_settings" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"llm_provider" text DEFAULT 'openrouter' NOT NULL,
 	"llm_model" text DEFAULT 'openai/gpt-4o-mini' NOT NULL,
@@ -8,7 +8,7 @@ CREATE TABLE "app_settings" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "articles" (
+CREATE TABLE IF NOT EXISTS "articles" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"source_id" uuid NOT NULL,
 	"url" text NOT NULL,
@@ -24,25 +24,25 @@ CREATE TABLE "articles" (
 	"scoring_model" text
 );
 --> statement-breakpoint
-CREATE TABLE "articles_hidden" (
+CREATE TABLE IF NOT EXISTS "articles_hidden" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"article_id" uuid NOT NULL,
 	"hidden" boolean DEFAULT false NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "articles_read" (
+CREATE TABLE IF NOT EXISTS "articles_read" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"article_id" uuid NOT NULL,
 	"read_at" timestamp with time zone
 );
 --> statement-breakpoint
-CREATE TABLE "articles_saved" (
+CREATE TABLE IF NOT EXISTS "articles_saved" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"article_id" uuid NOT NULL,
 	"saved" boolean DEFAULT false NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "feedback" (
+CREATE TABLE IF NOT EXISTS "feedback" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"article_id" uuid NOT NULL,
 	"value" integer NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE "feedback" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "job_logs" (
+CREATE TABLE IF NOT EXISTS "job_logs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"job_id" uuid NOT NULL,
 	"level" text DEFAULT 'info' NOT NULL,
@@ -58,7 +58,7 @@ CREATE TABLE "job_logs" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "jobs" (
+CREATE TABLE IF NOT EXISTS "jobs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"type" text NOT NULL,
 	"status" text DEFAULT 'queued' NOT NULL,
@@ -70,14 +70,14 @@ CREATE TABLE "jobs" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "preference_summaries" (
+CREATE TABLE IF NOT EXISTS "preference_summaries" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"kind" text NOT NULL,
 	"content" text NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "source_recipes" (
+CREATE TABLE IF NOT EXISTS "source_recipes" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"source_id" uuid NOT NULL,
 	"kind" text NOT NULL,
@@ -90,7 +90,7 @@ CREATE TABLE "source_recipes" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "sources" (
+CREATE TABLE IF NOT EXISTS "sources" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
 	"base_url" text NOT NULL,
@@ -106,17 +106,38 @@ CREATE TABLE "sources" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "articles" ADD CONSTRAINT "articles_source_id_sources_id_fk" FOREIGN KEY ("source_id") REFERENCES "public"."sources"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "articles_hidden" ADD CONSTRAINT "articles_hidden_article_id_articles_id_fk" FOREIGN KEY ("article_id") REFERENCES "public"."articles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "articles_read" ADD CONSTRAINT "articles_read_article_id_articles_id_fk" FOREIGN KEY ("article_id") REFERENCES "public"."articles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "articles_saved" ADD CONSTRAINT "articles_saved_article_id_articles_id_fk" FOREIGN KEY ("article_id") REFERENCES "public"."articles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "feedback" ADD CONSTRAINT "feedback_article_id_articles_id_fk" FOREIGN KEY ("article_id") REFERENCES "public"."articles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "job_logs" ADD CONSTRAINT "job_logs_job_id_jobs_id_fk" FOREIGN KEY ("job_id") REFERENCES "public"."jobs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "source_recipes" ADD CONSTRAINT "source_recipes_source_id_sources_id_fk" FOREIGN KEY ("source_id") REFERENCES "public"."sources"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "articles_url_idx" ON "articles" USING btree ("url");--> statement-breakpoint
-CREATE UNIQUE INDEX "articles_hidden_article_id_idx" ON "articles_hidden" USING btree ("article_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "articles_read_article_id_idx" ON "articles_read" USING btree ("article_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "articles_saved_article_id_idx" ON "articles_saved" USING btree ("article_id");--> statement-breakpoint
-CREATE INDEX "job_logs_job_id_idx" ON "job_logs" USING btree ("job_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "source_recipes_source_id_idx" ON "source_recipes" USING btree ("source_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "sources_base_url_idx" ON "sources" USING btree ("base_url");
+DO $$ BEGIN
+	ALTER TABLE "articles" ADD CONSTRAINT "articles_source_id_sources_id_fk" FOREIGN KEY ("source_id") REFERENCES "public"."sources"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+	ALTER TABLE "articles_hidden" ADD CONSTRAINT "articles_hidden_article_id_articles_id_fk" FOREIGN KEY ("article_id") REFERENCES "public"."articles"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+	ALTER TABLE "articles_read" ADD CONSTRAINT "articles_read_article_id_articles_id_fk" FOREIGN KEY ("article_id") REFERENCES "public"."articles"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+	ALTER TABLE "articles_saved" ADD CONSTRAINT "articles_saved_article_id_articles_id_fk" FOREIGN KEY ("article_id") REFERENCES "public"."articles"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+	ALTER TABLE "feedback" ADD CONSTRAINT "feedback_article_id_articles_id_fk" FOREIGN KEY ("article_id") REFERENCES "public"."articles"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+	ALTER TABLE "job_logs" ADD CONSTRAINT "job_logs_job_id_jobs_id_fk" FOREIGN KEY ("job_id") REFERENCES "public"."jobs"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+	ALTER TABLE "source_recipes" ADD CONSTRAINT "source_recipes_source_id_sources_id_fk" FOREIGN KEY ("source_id") REFERENCES "public"."sources"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "articles_url_idx" ON "articles" USING btree ("url");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "articles_hidden_article_id_idx" ON "articles_hidden" USING btree ("article_id");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "articles_read_article_id_idx" ON "articles_read" USING btree ("article_id");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "articles_saved_article_id_idx" ON "articles_saved" USING btree ("article_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "job_logs_job_id_idx" ON "job_logs" USING btree ("job_id");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "source_recipes_source_id_idx" ON "source_recipes" USING btree ("source_id");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "sources_base_url_idx" ON "sources" USING btree ("base_url");
