@@ -25,6 +25,10 @@ if ! command -v npm >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! command -v pm2 >/dev/null 2>&1; then
+  npm install -g pm2
+fi
+
 npm ci
 
 if [ -d drizzle ] && find drizzle -maxdepth 1 -type f -name '*.sql' -print -quit 2>/dev/null | grep -q .; then
