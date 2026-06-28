@@ -30,7 +30,7 @@ async function writeJobLog(jobId: string, message: string, level: 'info' | 'erro
   }
 }
 
-function retryDelaySeconds(attempt: number, error: unknown) {
+export function retryDelaySeconds(attempt: number, error: unknown) {
   const cappedAttempt = Math.max(1, Math.min(attempt, 8));
   const baseSeconds = error instanceof LlmRateLimitError ? 60 : 10;
   const capSeconds = error instanceof LlmRateLimitError ? 60 * 60 : 30 * 60;

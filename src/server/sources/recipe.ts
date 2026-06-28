@@ -47,9 +47,10 @@ export async function runRecipe(baseUrl: string, recipe: Recipe | RecipeV2): Pro
     if (!href) continue;
     const url = assertSameHost(baseUrl, href);
 
-    const title = recipe.list.titleSelector
+    const selectedTitle = recipe.list.titleSelector
       ? (el.querySelector(recipe.list.titleSelector)?.textContent ?? '').trim()
-      : (linkEl?.textContent ?? '').trim();
+      : '';
+    const title = selectedTitle || (linkEl?.textContent ?? '').trim();
 
     const summary = recipe.list.summarySelector
       ? (el.querySelector(recipe.list.summarySelector)?.textContent ?? '').trim()

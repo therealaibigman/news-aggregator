@@ -14,6 +14,8 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const current = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+    // ThemeScript sets the DOM dataset before hydration; mirror it for the segmented control.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(current);
   }, []);
 
